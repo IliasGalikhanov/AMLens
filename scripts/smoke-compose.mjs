@@ -22,7 +22,11 @@ function docker(args, capture = false, allowFailure = false) {
 }
 function compose(project, file, ...args) { return docker(['compose', '-p', project, '-f', file, ...args]); }
 async function request(path, init = {}, expected = 200, url = base) {
-  const response = await fetch(url + path, { ...init, signal: AbortSignal.timeout(180_000) });
+  // Synchronous Compose restarts can leave stale keep-alive sockets in the HTTP pool.
+  // Each probe uses a fresh connection so restart checks reach the new container.
+  const headers = new Headers(init.headers);
+  headers.set('connection', 'close');
+  const response = await fetch(url + path, { ...init, headers, signal: AbortSignal.timeout(180_000) });
   assert.equal(response.status, expected, path + ' HTTP status');
   return response;
 }
