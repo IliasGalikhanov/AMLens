@@ -1,0 +1,34 @@
+{
+  "format": "Apache Parquet",
+  "contains_customer_records": false,
+  "files": {
+    "nodes.parquet": {
+      "gid": "required signed int64; unique",
+      "depth": "required signed integer; 0..4",
+      "is_seed": "required boolean; equals depth == 0"
+    },
+    "edges.parquet": {
+      "src": "required signed int64; references nodes.gid",
+      "dst": "required signed int64; references nodes.gid",
+      "sum_kzt": "required float64; finite and >= 0",
+      "n_tx": "required signed int64; > 0",
+      "depth": "required signed int8; 1..4"
+    },
+    "transactions.parquet": {
+      "src": "required signed int64",
+      "dst": "required signed int64; (src, dst) references edges",
+      "date": "required Parquet DATE (physical INT32); calendar year 0001..9999",
+      "sum_kzt": "required float64; finite and >= 0"
+    }
+  },
+  "rules": {
+    "edges_unique_by": [
+      "src",
+      "dst"
+    ],
+    "duplicate_transactions_allowed": true,
+    "additional_columns_ignored": true,
+    "period_restriction": null,
+    "aggregation_reconciliation": false
+  }
+}
