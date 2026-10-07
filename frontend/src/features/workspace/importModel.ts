@@ -1,3 +1,4 @@
+import { t } from '../../i18n/core.ts';
 export const importKeys = ['edges', 'nodes', 'transactions'] as const;
 export type ImportKey = typeof importKeys[number];
 export type SlotStatus = 'empty' | 'validating' | 'selected' | 'uploading' | 'checking' | 'ready' | 'error';
@@ -14,18 +15,18 @@ export const emptySlots = (): ImportSlots => ({ edges: { status: 'empty', revisi
 
 /** Lightweight envelope check only; column/type validation belongs to the service. */
 export async function validateParquetFile(file: File): Promise<string | null> {
-  if (!/\.parquet$/i.test(file.name)) return 'Ожидается файл .parquet.';
-  if (!file.size) return 'Файл пуст. Выберите выгрузку с данными.';
-  if (file.size > 25 * 1024 * 1024) return 'Файл превышает лимит сервиса: 25 МиБ на один файл.';
-  if (file.size < 12) return 'Файл повреждён: отсутствует заголовок Parquet.';
+  if (!/\.parquet$/i.test(file.name)) return t("Ожидается файл .parquet.");
+  if (!file.size) return t("Файл пуст. Выберите выгрузку с данными.");
+  if (file.size > 25 * 1024 * 1024) return t("Файл превышает лимит сервиса: 25 МиБ на один файл.");
+  if (file.size < 12) return t("Файл повреждён: отсутствует заголовок Parquet.");
   try {
     const [start, end] = await Promise.all([file.slice(0, 4).arrayBuffer(), file.slice(-8).arrayBuffer()]);
     const decode = (buffer: ArrayBuffer) => new TextDecoder().decode(buffer);
-    if (decode(start) !== 'PAR1' || decode(end.slice(4)) !== 'PAR1') return 'Не удалось распознать Parquet. Файл повреждён или использует неподдерживаемое шифрование.';
+    if (decode(start) !== 'PAR1' || decode(end.slice(4)) !== 'PAR1') return t("Не удалось распознать Parquet. Файл повреждён или использует неподдерживаемое шифрование.");
     const footerLength = new DataView(end).getUint32(0, true);
-    if (!footerLength || footerLength > file.size - 12) return 'Файл повреждён: неверная длина метаданных Parquet.';
+    if (!footerLength || footerLength > file.size - 12) return t("Файл повреждён: неверная длина метаданных Parquet.");
     return null;
   } catch {
-    return 'Не удалось прочитать файл. Выберите его повторно.';
+    return t("Не удалось прочитать файл. Выберите его повторно.");
   }
 }

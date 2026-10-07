@@ -1,3 +1,4 @@
+import { t, getLocale } from '../../i18n/core.ts';
 import type {
   AnalysisResponse, AskRequest, AskResponse, ExportName, HealthResponse,
   NodeCardResponse, UploadResponse, AnalysisRecord,
@@ -87,7 +88,7 @@ function validCard(value: unknown) {
 }
 
 function invalidResponse(): never {
-  throw new ApiError('INVALID_RESPONSE', 'Сервис вернул данные неожиданного формата. Обновите анализ или повторите запрос.');
+  throw new ApiError('INVALID_RESPONSE', t("Сервис вернул данные неожиданного формата. Обновите анализ или повторите запрос."));
 }
 
 function parse<T>(value: unknown, validator: (input: unknown) => boolean): T {
@@ -96,14 +97,14 @@ function parse<T>(value: unknown, validator: (input: unknown) => boolean): T {
 }
 
 const defaultErrors: Record<string, string> = {
-  NO_ANALYSIS: 'Сначала загрузите три файла и выполните анализ.',
-  GID_NOT_FOUND: 'Клиент не найден в текущем анализе.',
-  EXPORT_NOT_FOUND: 'Этот файл экспорта недоступен.',
-  FILE_TOO_LARGE: 'Размер файла превышает 25 МиБ или общий размер запроса превышает 76 МиБ.',
-  ANALYSIS_BUSY: 'На сервере уже выполняется расчёт. Повторите загрузку после его завершения.',
-  STALE_ANALYSIS: 'На сервере появился новый анализ. Обновите данные и повторите действие.',
-  AI_UNAVAILABLE: 'AI-помощник временно недоступен. Анализ и экспорт остаются доступны.',
-  INTERNAL_ERROR: 'Сервис не смог обработать запрос. Повторите попытку.',
+  get NO_ANALYSIS() { return t("Сначала загрузите три файла и выполните анализ."); },
+  get GID_NOT_FOUND() { return t("Клиент не найден в текущем анализе."); },
+  get EXPORT_NOT_FOUND() { return t("Этот файл экспорта недоступен."); },
+  get FILE_TOO_LARGE() { return t("Размер файла превышает 25 МиБ или общий размер запроса превышает 76 МиБ."); },
+  get ANALYSIS_BUSY() { return t("На сервере уже выполняется расчёт. Повторите загрузку после его завершения."); },
+  get STALE_ANALYSIS() { return t("На сервере появился новый анализ. Обновите данные и повторите действие."); },
+  get AI_UNAVAILABLE() { return t("AI-помощник временно недоступен. Анализ и экспорт остаются доступны."); },
+  get INTERNAL_ERROR() { return t("Сервис не смог обработать запрос. Повторите попытку."); },
 };
 
 async function responseError(response: Response): Promise<ApiError> {
@@ -111,7 +112,7 @@ async function responseError(response: Response): Promise<ApiError> {
   const error = object(payload) && object(payload.error) ? payload.error : null;
   const code = error && text(error.code) ? error.code : response.status === 413 ? 'FILE_TOO_LARGE' : 'HTTP_ERROR';
   const message = error && text(error.message) ? error.message
-    : defaultErrors[code] ?? `Сервис вернул ошибку HTTP ${response.status}. Повторите запрос.`;
+    : defaultErrors[code] ?? t("Сервис вернул ошибку HTTP {0}. Повторите запрос.", [response.status]);
   return new ApiError(code, message, response.status, error && object(error.details) ? error.details : {});
 }
 
@@ -132,7 +133,7 @@ export function createApiClient({ baseUrl = '', fetcher = globalThis.fetch, time
       if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password || url.search || url.hash) throw new Error();
       return `${base}${path}`;
     } catch {
-      throw new ApiError('INVALID_CONFIG', 'Адрес API некорректен. Укажите HTTP(S)-адрес сервиса в VITE_API_BASE_URL.');
+      throw new ApiError('INVALID_CONFIG', t("Адрес API некорректен. Укажите HTTP(S)-адрес сервиса в VITE_API_BASE_URL."));
     }
   }
 
@@ -145,14 +146,16 @@ export function createApiClient({ baseUrl = '', fetcher = globalThis.fetch, time
     signal?.addEventListener('abort', abort, { once: true });
     const timer = setTimeout(() => { timedOut = true; controller.abort(); }, timeoutMs ?? duration);
     try {
-      const response = await fetcher(url, { ...init, signal: controller.signal, cache: 'no-store' });
+      const headers = new Headers(init.headers);
+      headers.set('Accept-Language', getLocale());
+      const response = await fetcher(url, { ...init, headers, signal: controller.signal, cache: 'no-store' });
       if (!response.ok) throw await responseError(response);
       return await read(response);
     } catch (error) {
-      if (signal?.aborted) throw signal.reason ?? new DOMException('Запрос отменён', 'AbortError');
-      if (timedOut) throw new ApiError('TIMEOUT', 'Сервис не ответил вовремя. Расчёт на сервере мог продолжиться — обновите данные перед повторной загрузкой.');
+      if (signal?.aborted) throw signal.reason ?? new DOMException(t("Запрос отменён"), 'AbortError');
+      if (timedOut) throw new ApiError('TIMEOUT', t("Сервис не ответил вовремя. Расчёт на сервере мог продолжиться — обновите данные перед повторной загрузкой."));
       if (error instanceof ApiError) throw error;
-      throw new ApiError('NETWORK_ERROR', 'Нет связи с сервисом анализа. Проверьте, что бэкенд запущен, и повторите запрос.');
+      throw new ApiError('NETWORK_ERROR', t("Нет связи с сервисом анализа. Проверьте, что бэкенд запущен, и повторите запрос."));
     } finally {
       clearTimeout(timer);
       signal?.removeEventListener('abort', abort);
@@ -190,7 +193,7 @@ export function createApiClient({ baseUrl = '', fetcher = globalThis.fetch, time
     },
 
     async getNodeCard(id: string, signal?: AbortSignal): Promise<NodeCardResponse> {
-      if (!gid(id)) throw new ApiError('INVALID_SCHEMA', 'gid должен быть десятичной строкой int64.', 422, { field: 'gid' });
+      if (!gid(id)) throw new ApiError('INVALID_SCHEMA', t("gid должен быть десятичной строкой int64."), 422, { field: 'gid' });
       const result = await json<NodeCardResponse>(`/api/nodes/${encodeURIComponent(id)}`, validCard, signal);
       if (result.node.gid !== BigInt(id).toString()) return invalidResponse();
       return result;
@@ -223,7 +226,7 @@ export function createApiClient({ baseUrl = '', fetcher = globalThis.fetch, time
       if (!text(input.analysis_id) || input.analysis_id.length > 128 || !question || question.length > 2000
         || !list(input.context_gids, gid) || input.context_gids.length < 1 || input.context_gids.length > 5
         || new Set(input.context_gids).size !== input.context_gids.length) {
-        throw new ApiError('INVALID_QUESTION', 'Введите вопрос до 2000 символов и выберите от 1 до 5 разных клиентов.', 422);
+        throw new ApiError('INVALID_QUESTION', t("Введите вопрос до 2000 символов и выберите от 1 до 5 разных клиентов."), 422);
       }
       const result = await json<AskResponse>('/api/ask', (value) => object(value) && text(value.analysis_id) && text(value.answer)
         && list(value.references, (entry) => object(entry) && gid(entry.gid) && strings(entry.facts))

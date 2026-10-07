@@ -1,3 +1,4 @@
+import { t } from '../../i18n/core.ts';
 import type { GraphSlice, NodeDetails, Role, TopNode } from '../../shared/contracts';
 
 export type NodeFlow = Pick<NodeDetails, 'incoming_sum_kzt' | 'outgoing_sum_kzt' | 'unique_payers' | 'unique_recipients'>;
@@ -31,5 +32,5 @@ function csvCell(value: unknown) {
 }
 export function topNodesCsv(nodes: TopNode[]) {
   const columns = ['rank', 'gid', 'role', 'role_score', 'priority_score', 'cluster_id', 'is_seed', 'depth', 'why', 'evidence'] as const;
-  return '\uFEFF' + [columns.join(';'), ...nodes.map((node) => columns.map((key) => csvCell(node[key])).join(';'))].join('\r\n');
+  return '\uFEFF' + [columns.join(';'), ...nodes.map((node) => columns.map((key) => csvCell(key === 'why' || key === 'evidence' ? t(node[key]) : node[key])).join(';'))].join('\r\n');
 }

@@ -1,3 +1,4 @@
+import { t } from '../../i18n/core.ts';
 import topNodes from './fixtures/top-nodes.json';
 import nodeDetails from './fixtures/node-details.json';
 import graphSlice from './fixtures/graph-slice.json';
@@ -14,7 +15,7 @@ export const { getHealth, getAnalysis, getNodeCard, uploadAnalysis, downloadExpo
 
 function requireDemo() {
   if (!isDemo) {
-    throw new ApiError('DEMO_DISABLED', 'Демонстрационные данные отключены. Загрузите файлы для реального анализа.');
+    throw new ApiError('DEMO_DISABLED', t("Демонстрационные данные отключены. Загрузите файлы для реального анализа."));
   }
 }
 

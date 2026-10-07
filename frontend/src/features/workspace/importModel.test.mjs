@@ -15,20 +15,20 @@ test('local validation accepts a Parquet envelope without claiming schema validi
 });
 test('wrong extension, empty files and renamed text are rejected', async () => {
   assert.match(await validateParquetFile(new File([envelope()], 'nodes.csv')), /\.parquet/);
-  assert.match(await validateParquetFile(new File([], 'nodes.parquet')), /пуст/);
-  assert.match(await validateParquetFile(new File(['not really parquet data'], 'nodes.parquet')), /распознать/);
+  assert.match(await validateParquetFile(new File([], 'nodes.parquet')), /empty/);
+  assert.match(await validateParquetFile(new File(['not really parquet data'], 'nodes.parquet')), /recognize/);
 });
 test('truncated footer and invalid metadata bounds are rejected', async () => {
-  assert.match(await validateParquetFile(new File(['PAR1'], 'edges.parquet')), /повреждён/);
+  assert.match(await validateParquetFile(new File(['PAR1'], 'edges.parquet')), /Corrupt/);
   const bytes = envelope();
   new DataView(bytes.buffer).setUint32(8, 1000, true);
-  assert.match(await validateParquetFile(new File([bytes], 'edges.parquet')), /длина метаданных/);
+  assert.match(await validateParquetFile(new File([bytes], 'edges.parquet')), /metadata length/);
 });
 test('read errors become actionable messages', async () => {
   const unreadable = { name: 'nodes.parquet', size: 16, slice: () => ({ arrayBuffer: async () => { throw new Error('read failed'); } }) };
-  assert.match(await validateParquetFile(unreadable), /прочитать/);
+  assert.match(await validateParquetFile(unreadable), /read/);
 });
 test('oversized file is rejected before reading or sending it', async () => {
   const oversized = { name: 'nodes.parquet', size: 25 * 1024 * 1024 + 1, slice: () => { throw new Error('must not read'); } };
-  assert.match(await validateParquetFile(oversized), /25 МиБ/);
+  assert.match(await validateParquetFile(oversized), /25 MiB/);
 });

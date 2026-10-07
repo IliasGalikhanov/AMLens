@@ -1,3 +1,5 @@
+import { t } from '../../i18n/core.ts';
+import { useLocale } from '../../i18n/react';
 import { useEffect, useRef, useState } from 'react';
 import ImportSlot, { statusLabels } from './ImportSlot';
 import Icon from './Icon';
@@ -6,6 +8,7 @@ import type { ImportKey, ImportSlots, PipelineStatus, StartImport } from './impo
 import './DataImport.css';
 
 export default function DataImport({ startImport }: { startImport?: StartImport }) {
+  useLocale();
   const [slots, setSlots] = useState(emptySlots);
   const [pipeline, setPipeline] = useState<PipelineStatus>('idle');
   const [pipelineError, setPipelineError] = useState('');
@@ -22,7 +25,7 @@ export default function DataImport({ startImport }: { startImport?: StartImport 
     const revision = ++revisions.current[key];
     setPipeline('idle'); setPipelineError('');
     if (files.length !== 1) {
-      setSlots((old) => ({ ...old, [key]: { status: 'error', error: 'Выберите один файл для этого слота.', revision } }));
+      setSlots((old) => ({ ...old, [key]: { status: 'error', error: t("Выберите один файл для этого слота."), revision } }));
       return;
     }
     const file = files[0];
@@ -53,17 +56,17 @@ export default function DataImport({ startImport }: { startImport?: StartImport 
         if (controller.signal.aborted || !mounted.current || request.current !== controller) return;
         if (event.type === 'file') {
           current = { ...current, [event.key]: { ...current[event.key], status: event.status, progress: event.progress,
-            error: event.status === 'error' ? event.error || 'Файл не прошёл проверку.' : undefined } };
+            error: event.status === 'error' ? event.error || t("Файл не прошёл проверку.") : undefined } };
           setSlots(current);
         } else {
           if ((event.status === 'running' || event.status === 'complete') && !importKeys.every((key) => current[key].status === 'ready')) return;
           outcome.status = event.status; setPipeline(event.status); setPipelineError(event.error || '');
         }
       }, controller.signal);
-      if (outcome.status !== 'complete' && outcome.status !== 'error' && !controller.signal.aborted) throw new Error('Сервис не подтвердил завершение расчёта.');
+      if (outcome.status !== 'complete' && outcome.status !== 'error' && !controller.signal.aborted) throw new Error(t("Сервис не подтвердил завершение расчёта."));
     } catch (error) {
       if (!controller.signal.aborted && mounted.current) {
-        setPipeline('error'); setPipelineError(error instanceof Error ? error.message : 'Не удалось отправить данные. Повторите попытку.');
+        setPipeline('error'); setPipelineError(error instanceof Error ? error.message : t("Не удалось отправить данные. Повторите попытку."));
       }
     } finally {
       if (mounted.current && !controller.signal.aborted) {
@@ -77,30 +80,30 @@ export default function DataImport({ startImport }: { startImport?: StartImport 
       request.current = null;
     }
   };
-  const status = pipeline === 'error' ? pipelineError || 'Расчёт не завершён. Проверьте ошибки файлов.'
-    : pipeline === 'complete' ? 'Расчёт завершён'
-    : pipeline === 'running' ? 'Файлы готовы · расчёт выполняется…'
-    : pipeline === 'checking' ? 'Проверка данных…'
-    : pipeline === 'uploading' ? 'Загрузка, проверка и расчёт…'
-    : selectedCount === 3 && !startImport ? 'Файлы выбраны. Отправка отключена в деморежиме.'
-    : `Выбрано ${selectedCount} из 3 файлов`;
+  const status = pipeline === 'error' ? pipelineError || t("Расчёт не завершён. Проверьте ошибки файлов.")
+    : pipeline === 'complete' ? t("Расчёт завершён")
+    : pipeline === 'running' ? t("Файлы готовы · расчёт выполняется…")
+    : pipeline === 'checking' ? t("Проверка данных…")
+    : pipeline === 'uploading' ? t("Загрузка, проверка и расчёт…")
+    : selectedCount === 3 && !startImport ? t("Файлы выбраны. Отправка отключена в деморежиме.")
+    : t("Выбрано {0} из 3 файлов", [selectedCount]);
 
   return <section className={`data-import panel${compact ? ' data-import--compact' : ''}`} aria-labelledby="import-title">
     <div className="data-import__heading">
-      <div className="data-import__title"><span className="import-symbol"><Icon name="upload" size={19} /></span><div><h2 id="import-title">Данные исследования</h2><p className="secondary">{compact ? status : 'Три файла Parquet для одного расчёта'}</p></div></div>
-      {compact && <div className="import-summary" aria-label="Состояние файлов">{importKeys.map((key) => <span className={'import-summary__file' + (slots[key].status === 'error' ? ' import-summary__file--error' : '')} key={key} title={(slots[key].file?.name || key + '.parquet') + ' · ' + (slots[key].error || statusLabels[slots[key].status])}><Icon name={slots[key].status === 'selected' || slots[key].status === 'ready' ? 'check' : 'upload'} size={13} /><span>{key}.parquet</span><span className="sr-only">{statusLabels[slots[key].status]}</span></span>)}</div>}
-      <button className="import-toggle" type="button" aria-expanded={!compact} aria-controls="import-controls" onClick={() => setCompact(!compact)}>{compact ? 'Импорт файлов' : 'Свернуть'}<Icon name="chevron" size={15} style={{ transform: compact ? undefined : 'rotate(180deg)' }} /></button>
+      <div className="data-import__title"><span className="import-symbol"><Icon name="upload" size={19} /></span><div><h2 id="import-title">{t("Данные исследования")}</h2><p className="secondary">{compact ? status : t("Три файла Parquet для одного расчёта")}</p></div></div>
+      {compact && <div className="import-summary" aria-label={t("Состояние файлов")}>{importKeys.map((key) => <span className={'import-summary__file' + (slots[key].status === 'error' ? ' import-summary__file--error' : '')} key={key} title={(slots[key].file?.name || key + '.parquet') + ' · ' + (slots[key].error || statusLabels[slots[key].status])}><Icon name={slots[key].status === 'selected' || slots[key].status === 'ready' ? 'check' : 'upload'} size={13} /><span>{key}.parquet</span><span className="sr-only">{statusLabels[slots[key].status]}</span></span>)}</div>}
+      <button className="import-toggle" type="button" aria-expanded={!compact} aria-controls="import-controls" onClick={() => setCompact(!compact)}>{compact ? t("Импорт файлов") : t("Свернуть")}<Icon name="chevron" size={15} style={{ transform: compact ? undefined : 'rotate(180deg)' }} /></button>
     </div>
     <div id="import-controls" hidden={compact}>
     <div className="data-import__slots">{importKeys.map((key) => <ImportSlot key={key} name={key} state={slots[key]} locked={inFlight} onChoose={(files) => { void choose(key, files); }} onRemove={() => remove(key)} />)}</div>
     <div className={`pipeline-status pipeline-status--${pipeline}`}>
       <div id="pipeline-description" role={pipeline === 'error' ? 'alert' : 'status'}>
         <span className="pipeline-status__indicator" aria-hidden="true" /><span>{status}</span>
-        {readyCount > 0 && pipeline !== 'idle' && <span className="secondary">Файлы готовы: {readyCount}/3</span>}
+        {readyCount > 0 && pipeline !== 'idle' && <span className="secondary">{t("Файлы готовы:")}{" "}{readyCount}/3</span>}
       </div>
-      <button className="primary-button" type="button" disabled={!canStart} aria-describedby="pipeline-description import-availability" onClick={() => { void start(); }}>Загрузить и запустить</button>
+      <button className="primary-button" type="button" disabled={!canStart} aria-describedby="pipeline-description import-availability" onClick={() => { void start(); }}>{t("Загрузить и запустить")}</button>
     </div>
-    <p id="import-availability" className="data-import__availability">{startImport ? 'До 25 МиБ на файл. Сервис проверит колонки и выполнит расчёт одним запросом; точный процент прогресса недоступен. При ошибке предыдущий анализ сохранится.' : 'Демонстрационный режим: доступна локальная проверка файла. Для отправки включите реальный API.'}</p>
+    <p id="import-availability" className="data-import__availability">{startImport ? t("До 25 МиБ на файл. Сервис проверит колонки и выполнит расчёт одним запросом; точный процент прогресса недоступен. При ошибке предыдущий анализ сохранится.") : t("Демонстрационный режим: доступна локальная проверка файла. Для отправки включите реальный API.")}</p>
     </div>
   </section>;
 }

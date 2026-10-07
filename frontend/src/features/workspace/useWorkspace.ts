@@ -1,3 +1,5 @@
+import { useLocale } from '../../i18n/react';
+import { t } from '../../i18n/core.ts';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ApiError, getAnalysis, getDemoNetwork, getHealth, getNodeCard, getNodeView, getTopNodes, isDemo, uploadAnalysis } from '../../shared/api/workspace';
 import type { AnalysisResponse, HealthResponse, NodeCardResponse } from '../../shared/api/types';
@@ -5,9 +7,10 @@ import type { GraphSlice, NodeDetails, TopNode } from '../../shared/contracts';
 import type { StartImport, ImportKey } from './importModel';
 import { analysisGraph, graphNeighborhood, nodeDetails, rankedNodes } from './analysisModel';
 
-const message = (error: unknown) => error instanceof Error ? error.message : 'Не удалось получить данные. Повторите запрос.';
+const message = (error: unknown) => error instanceof Error ? error.message : t("Не удалось получить данные. Повторите запрос.");
 
 export function useWorkspace() {
+  const locale = useLocale();
   const [snapshot, setSnapshot] = useState<AnalysisResponse | null>(null);
   const [health, setHealth] = useState<HealthResponse | null>(null);
   const [healthLoading, setHealthLoading] = useState(false);
@@ -52,7 +55,7 @@ export function useWorkspace() {
     }
   }, []);
 
-  const refreshTop = useCallback(async () => {
+  const refreshTop = useCallback(async (preserveView = false) => {
     request.current?.abort();
     const controller = new AbortController(); request.current = controller;
     setLoadingTop(true); setTopError('');
@@ -68,7 +71,8 @@ export function useWorkspace() {
       setSnapshot(value);
       const gid = value?.nodes.some((node) => node.gid === selectedRef.current)
         ? selectedRef.current : '';
-      setSelectedGid(gid); setCenterGid(gid); setNeighborLimit(120);
+      setSelectedGid(gid);
+      if (!preserveView || !gid) { setCenterGid(gid); setNeighborLimit(120); }
       if (!gid) setGraphMode('global');
       return value;
     } catch (error) {
@@ -79,10 +83,13 @@ export function useWorkspace() {
     }
   }, [refreshHealth]);
 
+  const previousLocale = useRef(locale);
   useEffect(() => {
-    void refreshTop().catch(() => {});
+    const preserveView = previousLocale.current !== locale;
+    previousLocale.current = locale;
+    void refreshTop(preserveView).catch(() => {});
     return () => { request.current?.abort(); healthRequest.current?.abort(); };
-  }, [refreshTop]);
+  }, [refreshTop, locale]);
   const refresh = useCallback(() => {
     // A stale card/AI response must not cancel the snapshot read awaited by an import.
     if (request.current && !request.current.signal.aborted) return;
@@ -133,8 +140,8 @@ export function useWorkspace() {
       for (const key of ['nodes', 'edges', 'transactions'] as const) report({ type: 'file', key, status: 'ready' });
       const latest = await refreshTop();
       if (signal.aborted) return;
-      if (!latest) throw new Error('Расчёт завершён, но результат не получен. Обновите данные исследования.');
-      if (latest.analysis_id !== uploaded.analysis_id) throw new Error('На сервере уже опубликован более новый анализ. На экране показана его версия.');
+      if (!latest) throw new Error(t("Расчёт завершён, но результат не получен. Обновите данные исследования."));
+      if (latest.analysis_id !== uploaded.analysis_id) throw new Error(t("На сервере уже опубликован более новый анализ. На экране показана его версия."));
       report({ type: 'pipeline', status: 'complete' });
     } catch (error) {
       if (signal.aborted) return;

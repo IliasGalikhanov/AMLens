@@ -1,3 +1,5 @@
+import { t } from '../../i18n/core.ts';
+import { useLocale } from '../../i18n/react';
 import { useEffect, useRef, useState } from 'react';
 import { ApiError, downloadExport, isDemo } from '../../shared/api/workspace';
 import type { ExportName } from '../../shared/api/types';
@@ -9,6 +11,7 @@ export default function ExportMenu({ analysisId, onFiltered, onStale, announce, 
   analysisId: string | null; onFiltered: () => void; onStale: () => void;
   announce: (message: string) => void; disabled: boolean;
 }) {
+  useLocale();
   const [name, setName] = useState<ExportName | 'filtered'>('nodes_roles.csv');
   const [busy, setBusy] = useState(false);
   const request = useRef<AbortController | null>(null);
@@ -24,19 +27,19 @@ export default function ExportMenu({ analysisId, onFiltered, onStale, announce, 
       const link = document.createElement('a'); link.href = url; link.download = file.filename;
       document.body.append(link); link.click(); link.remove();
       window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-      announce('Подготовлен ' + file.filename + ' для текущего анализа.');
+      announce(t("Подготовлен ") + file.filename + t(" для текущего анализа."));
     } catch (error) {
       if (controller.signal.aborted) return;
-      announce(error instanceof Error ? error.message : 'Не удалось скачать CSV.');
+      announce(error instanceof Error ? error.message : t("Не удалось скачать CSV."));
       if (error instanceof ApiError && ['STALE_ANALYSIS', 'NO_ANALYSIS'].includes(error.code)) onStale();
     } finally {
       if (request.current === controller) { request.current = null; setBusy(false); }
     }
   };
   return <div className="export-controls">
-    {!isDemo && <label><span className="sr-only">Файл экспорта</span><select aria-label="Файл экспорта" value={name} disabled={busy} onChange={(event) => setName(event.target.value as typeof name)}>
-      {names.map((item) => <option key={item} value={item}>{item}</option>)}<option value="filtered">Текущий список</option>
+    {!isDemo && <label><span className="sr-only">{t("Файл экспорта")}</span><select aria-label={t("Файл экспорта")} value={name} disabled={busy} onChange={(event) => setName(event.target.value as typeof name)}>
+      {names.map((item) => <option key={item} value={item}>{item}</option>)}<option value="filtered">{t("Текущий список")}</option>
     </select></label>}
-    <button type="button" className="export-button" disabled={busy || disabled || (!isDemo && !analysisId)} onClick={() => { void download(); }}><Icon name="download" />{busy ? 'Подготовка…' : 'Экспорт'}<span className="export-button__format">CSV</span></button>
+    <button type="button" className="export-button" disabled={busy || disabled || (!isDemo && !analysisId)} onClick={() => { void download(); }}><Icon name="download" />{busy ? t("Подготовка…") : t("Экспорт")}<span className="export-button__format">CSV</span></button>
   </div>;
 }

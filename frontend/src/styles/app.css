@@ -237,3 +237,7 @@ dd { margin: 0; font-family: var(--font-data); font-variant-numeric: var(--numer
   .list-filters label, .priority-filter, .list-caption { font-size: 11px; }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; } button { transition: none; } }
+
+.language-select select { background: var(--color-surface); color: inherit; border: 1px solid var(--color-border); border-radius: 7px; padding: 6px 8px; font: inherit; max-width: 130px; }
+.language-select select:focus-visible { outline: 2px solid var(--color-accent, #4769dd); outline-offset: 2px; }
+.app-header__meta { flex-wrap: wrap; }

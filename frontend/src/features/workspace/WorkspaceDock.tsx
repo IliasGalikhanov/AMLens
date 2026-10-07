@@ -1,3 +1,5 @@
+import { t } from '../../i18n/core.ts';
+import { useLocale } from '../../i18n/react';
 import { useEffect, useRef, type ReactNode } from 'react';
 import Icon from './Icon';
 
@@ -5,6 +7,7 @@ export default function WorkspaceDock({ side, title, open, busy, count, inactive
   side: 'left' | 'right'; title: string; open: boolean; busy: boolean; count?: ReactNode;
   inactive: boolean; onToggle: () => void; children: ReactNode;
 }) {
+  useLocale();
   const id = `workspace-${side}`;
   const expandButton = useRef<HTMLButtonElement>(null);
   const collapseButton = useRef<HTMLButtonElement>(null);
@@ -19,7 +22,7 @@ export default function WorkspaceDock({ side, title, open, busy, count, inactive
 
   return <div className={`workspace-dock workspace-dock--${side}`} inert={inactive}>
     <button ref={expandButton} className="workspace-rail" hidden={open} type="button"
-      aria-label={`Развернуть: ${title}`} title={`Развернуть: ${title}`} aria-expanded={false} aria-controls={id} onClick={toggle}>
+      aria-label={t("Развернуть: {0}", [title])} title={t("Развернуть: {0}", [title])} aria-expanded={false} aria-controls={id} onClick={toggle}>
       <Icon name={side === 'left' ? 'panelLeft' : 'panelRight'} size={19} />
       <span className="workspace-rail__title">{title}</span>
       {count !== undefined && <span className="workspace-rail__count">{count}</span>}
@@ -30,7 +33,7 @@ export default function WorkspaceDock({ side, title, open, busy, count, inactive
         <h3 id={`${id}-title`}>{title}</h3>
         {count !== undefined && <span className="count-label">{count}</span>}
         <button ref={collapseButton} className="icon-button sidebar-collapse" type="button"
-          aria-label={`Свернуть: ${title}`} title={`Свернуть: ${title}`} aria-expanded={true} aria-controls={id} onClick={toggle}>
+          aria-label={t("Свернуть: {0}", [title])} title={t("Свернуть: {0}", [title])} aria-expanded={true} aria-controls={id} onClick={toggle}>
           <Icon name="chevron" size={17} style={{ transform: `rotate(${side === 'left' ? 90 : -90}deg)` }} />
         </button>
       </div>

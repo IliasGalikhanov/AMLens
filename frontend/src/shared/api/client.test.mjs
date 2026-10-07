@@ -96,7 +96,8 @@ test('upload sends exactly three file fields and waits for the completed analysi
   const api = createApiClient({ fetcher: async (url, init) => {
     assert.equal(url, '/api/analyze');
     assert.equal(init.method, 'POST');
-    assert.equal(init.headers, undefined, 'fetch must generate the multipart boundary');
+    assert.equal(new Headers(init.headers).get('Content-Type'), null, 'fetch must generate the multipart boundary');
+    assert.equal(new Headers(init.headers).get('Accept-Language'), 'en');
     assert.deepEqual([...init.body.keys()], ['nodes', 'edges', 'transactions']);
     for (const name of Object.keys(files)) assert.equal(init.body.get(name).name, `${name}.parquet`);
     return json(result);
@@ -138,7 +139,7 @@ test('AI request sends trimmed text and exact identifiers, and checks the return
     calls++;
     assert.equal(url, '/api/ask');
     assert.equal(init.method, 'POST');
-    assert.equal(init.headers['Content-Type'], 'application/json');
+    assert.equal(new Headers(init.headers).get('Content-Type'), 'application/json');
     assert.deepEqual(JSON.parse(init.body), { ...question, question: question.question.trim() });
     return json(data);
   } });

@@ -1,3 +1,5 @@
+import { t, getLocale } from '../../i18n/core.ts';
+import { useLocale } from '../../i18n/react';
 import { useEffect, useId, useRef, useState } from 'react';
 import cytoscape, { type Core, type StylesheetJson } from 'cytoscape';
 import type { GraphViewProps, Role } from '../../shared/contracts';
@@ -10,12 +12,12 @@ import { createGraphFocus, supportsGraphWebGL } from './graphRendering';
 import './GraphView.css';
 
 const roles: { role: Role; label: string }[] = [
-  { role: 'consolidator', label: 'Консолидация' },
-  { role: 'transit', label: 'Транзит' },
-  { role: 'distributor', label: 'Распределение' },
-  { role: 'terminal', label: 'Конечный получатель' },
-  { role: 'coordinator', label: 'Координация' },
-  { role: 'peripheral', label: 'Периферия' },
+  { role: 'consolidator', get label() { return t("Консолидация"); } },
+  { role: 'transit', get label() { return t("Транзит"); } },
+  { role: 'distributor', get label() { return t("Распределение"); } },
+  { role: 'terminal', get label() { return t("Конечный получатель"); } },
+  { role: 'coordinator', get label() { return t("Координация"); } },
+  { role: 'peripheral', get label() { return t("Периферия"); } },
 ];
 
 function fitGraph(cy: Core, global = false, padding = 38) {
@@ -44,6 +46,7 @@ function fitGraph(cy: Core, global = false, padding = 38) {
 }
 
 function SettingsIcon() {
+  useLocale();
   return <svg width="16" height="16" viewBox="0 0 20 20" fill="none" aria-hidden="true">
     <path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
     <circle cx="7" cy="5" r="2" fill="var(--color-surface)" stroke="currentColor" strokeWidth="1.3" />
@@ -53,6 +56,7 @@ function SettingsIcon() {
 }
 
 export default function GraphView({ graph, selectedGid, loading, onSelectGid }: GraphViewProps) {
+  useLocale();
   const containerRef = useRef<HTMLDivElement>(null);
   const cyRef = useRef<Core | null>(null);
   const [labels, setLabels] = useState<GraphLabel[]>([]);
@@ -320,34 +324,34 @@ export default function GraphView({ graph, selectedGid, loading, onSelectGid }: 
     cy.zoom({ level: Math.max(cy.minZoom(), Math.min(cy.maxZoom(), cy.zoom() * factor)),
       renderedPosition: { x: cy.width() / 2, y: cy.height() / 2 } });
   };
-  const stateMessage = loading ? 'Загрузка графа…' : !graph ? 'Граф пока не загружен'
-    : !graph.nodes.length ? (isGlobal ? 'В этой сети пока нет клиентов' : 'Для выбранного клиента связи не найдены') : null;
+  const stateMessage = loading ? t("Загрузка графа…") : !graph ? t("Граф пока не загружен")
+    : !graph.nodes.length ? (isGlobal ? t("В этой сети пока нет клиентов") : t("Для выбранного клиента связи не найдены")) : null;
   const sliders: { key: keyof ForceSettings; label: string }[] = [
-    { key: 'repulsion', label: 'Отталкивание' }, { key: 'distance', label: 'Длина связей' }, { key: 'center', label: 'Притяжение к центру' },
+    { key: 'repulsion', get label() { return t("Отталкивание"); } }, { key: 'distance', get label() { return t("Длина связей"); } }, { key: 'center', get label() { return t("Притяжение к центру"); } },
   ];
 
   return (
-    <section className="aml-graph" aria-label="Граф денежных переводов">
+    <section className="aml-graph" aria-label={t("Граф денежных переводов")}>
       <div className="aml-graph__header">
-        <p>Стрелка → получатель<span className="aml-graph__label-hint"> · Потяните узел, чтобы исследовать связи</span></p>
+        <p>{t("Стрелка → получатель")}<span className="aml-graph__label-hint">{" "}{t("· Потяните узел, чтобы исследовать связи")}</span></p>
         {hasNodes && <div className="aml-graph__controls">
           <div className="aml-graph__zoom">
-            <button type="button" aria-label="Уменьшить граф" disabled={zoomPercent <= minZoom * 100} onClick={() => zoomBy(1 / 1.35)}>−</button>
-            <output aria-label="Масштаб графа">{zoomPercent}%</output>
-            <button type="button" aria-label="Увеличить граф" disabled={zoomPercent >= 400} onClick={() => zoomBy(1.35)}>+</button>
+            <button type="button" aria-label={t("Уменьшить граф")} disabled={zoomPercent <= minZoom * 100} onClick={() => zoomBy(1 / 1.35)}>−</button>
+            <output aria-label={t("Масштаб графа")}>{zoomPercent}%</output>
+            <button type="button" aria-label={t("Увеличить граф")} disabled={zoomPercent >= 400} onClick={() => zoomBy(1.35)}>+</button>
           </div>
-          <button type="button" className="aml-graph__fit" aria-label={isGlobal ? 'Вписать всю сеть' : 'Вписать окружение клиента'} onClick={() => { if (cyRef.current) fitGraph(cyRef.current, isGlobal); }}>{isGlobal ? 'Вся сеть' : 'Весь срез'}</button>
+          <button type="button" className="aml-graph__fit" aria-label={isGlobal ? t("Вписать всю сеть") : t("Вписать окружение клиента")} onClick={() => { if (cyRef.current) fitGraph(cyRef.current, isGlobal); }}>{isGlobal ? t("Вся сеть") : t("Весь срез")}</button>
           <button type="button" className={'aml-graph__settings-button' + (settingsOpen ? ' is-active' : '')}
-            aria-label="Настройки графа" aria-expanded={settingsOpen} aria-controls={settingsId}
+            aria-label={t("Настройки графа")} aria-expanded={settingsOpen} aria-controls={settingsId}
             onClick={() => setSettingsOpen((value) => !value)}><SettingsIcon /></button>
         </div>}
       </div>
       {stateMessage ? <div className="aml-graph__state" role="status">{stateMessage}</div> : <>
-        {selectedMissing && <p className="aml-graph__notice" role="status">Выбранный gid отсутствует в показанном срезе.</p>}
+        {selectedMissing && <p className="aml-graph__notice" role="status">{t("Выбранный gid отсутствует в показанном срезе.")}</p>}
         <div className="aml-graph__viewport" aria-busy={layoutBusy}>
-          {layoutBusy && <div className="aml-graph__layout-status" role="status">Размещаем {graph!.nodes.length.toLocaleString('ru-RU')} узлов…</div>}
+          {layoutBusy && <div className="aml-graph__layout-status" role="status">{t("Размещаем")}{" "}{graph!.nodes.length.toLocaleString(getLocale())}{" "}{t("узлов…")}</div>}
           <div ref={containerRef} className="aml-graph__canvas" tabIndex={0}
-            aria-label="Ориентированный граф переводов. Перетаскивайте узлы и фон. Плюс и минус — масштаб, стрелки — перемещение, 0 — весь срез."
+            aria-label={t("Ориентированный граф переводов. Перетаскивайте узлы и фон. Плюс и минус — масштаб, стрелки — перемещение, 0 — весь срез.")}
             onKeyDown={(event) => {
               const cy = cyRef.current; if (!cy) return;
               const pan: Record<string, Point> = { ArrowLeft: { x: 40, y: 0 }, ArrowRight: { x: -40, y: 0 }, ArrowUp: { x: 0, y: 40 }, ArrowDown: { x: 0, y: -40 } };
@@ -366,23 +370,23 @@ export default function GraphView({ graph, selectedGid, loading, onSelectGid }: 
             className={'aml-graph__label aml-graph__label--' + label.kind}
             style={{ left: label.left, top: label.top, width: label.width, height: label.height,
               opacity: label.kind === 'context' ? Math.min(1, Math.max(0, (zoomPercent / 100 - 0.3) / 0.45)) : 1 }}>{label.text}</span>)}</div>
-          {settingsOpen && <aside id={settingsId} className="aml-graph__settings" aria-label="Настройки отображения графа"
+          {settingsOpen && <aside id={settingsId} className="aml-graph__settings" aria-label={t("Настройки отображения графа")}
             onKeyDown={(event) => { if (event.key === 'Escape') setSettingsOpen(false); }}>
-            <div className="aml-graph__settings-heading"><strong>Граф</strong><button type="button"
-              aria-label="Сбросить настройки графа" onClick={() => { setForces({ ...defaultForces }); setShowContext(true); setMotion(!window.matchMedia('(prefers-reduced-motion: reduce)').matches); }}>Сбросить</button></div>
-            <label className="aml-graph__option"><span>Подписи узлов</span><input type="checkbox" checked={showContext} onChange={(event) => setShowContext(event.target.checked)} /></label>
-            <label className="aml-graph__option"><span>Плавное движение</span><input type="checkbox" checked={motion} onChange={(event) => setMotion(event.target.checked)} /></label>
+            <div className="aml-graph__settings-heading"><strong>{t("Граф")}</strong><button type="button"
+              aria-label={t("Сбросить настройки графа")} onClick={() => { setForces({ ...defaultForces }); setShowContext(true); setMotion(!window.matchMedia('(prefers-reduced-motion: reduce)').matches); }}>{t("Сбросить")}</button></div>
+            <label className="aml-graph__option"><span>{t("Подписи узлов")}</span><input type="checkbox" checked={showContext} onChange={(event) => setShowContext(event.target.checked)} /></label>
+            <label className="aml-graph__option"><span>{t("Плавное движение")}</span><input type="checkbox" checked={motion} onChange={(event) => setMotion(event.target.checked)} /></label>
             <div className="aml-graph__settings-divider" />
             {sliders.map(({ key, label }) => <label className="aml-graph__slider" key={key}>
               <span>{label}<output>{forces[key].toFixed(1)}×</output></span>
               <input type="range" min="0.4" max="2.5" step="0.1" value={forces[key]}
                 onChange={(event) => setForces((current) => ({ ...current, [key]: Number(event.target.value) }))} />
             </label>)}
-            <p>Размер узла — приоритет проверки. Цвет — аналитическая роль.</p>
+            <p>{t("Размер узла — приоритет проверки. Цвет — аналитическая роль.")}</p>
           </aside>}
-          <div className="aml-graph__hint" aria-hidden="true">Колесо — масштаб · Фон — перемещение</div>
+          <div className="aml-graph__hint" aria-hidden="true">{t("Колесо — масштаб · Фон — перемещение")}</div>
         </div>
-        <div className="aml-graph__legend" aria-label="Легенда ролей">
+        <div className="aml-graph__legend" aria-label={t("Легенда ролей")}>
           {roles.map(({ role, label }) => <span className="aml-graph__legend-item" key={role}>
             <span className="aml-graph__swatch" style={{ backgroundColor: 'var(--role-' + role + ')' }} aria-hidden="true" />{label}
           </span>)}
