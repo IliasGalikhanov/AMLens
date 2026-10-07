@@ -1,0 +1,167 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ApiError, getAnalysis, getDemoNetwork, getHealth, getNodeCard, getNodeView, getTopNodes, isDemo, uploadAnalysis } from '../../shared/api/workspace';
+import type { AnalysisResponse, HealthResponse, NodeCardResponse } from '../../shared/api/types';
+import type { GraphSlice, NodeDetails, TopNode } from '../../shared/contracts';
+import type { StartImport, ImportKey } from './importModel';
+import { analysisGraph, graphNeighborhood, nodeDetails, rankedNodes } from './analysisModel';
+
+const message = (error: unknown) => error instanceof Error ? error.message : 'Не удалось получить данные. Повторите запрос.';
+
+export function useWorkspace() {
+  const [snapshot, setSnapshot] = useState<AnalysisResponse | null>(null);
+  const [health, setHealth] = useState<HealthResponse | null>(null);
+  const [healthLoading, setHealthLoading] = useState(false);
+  const [healthError, setHealthError] = useState('');
+  const [demoNodes, setDemoNodes] = useState<TopNode[]>([]);
+  const [demoGraph, setDemoGraph] = useState<GraphSlice | null>(null);
+  const [demoDetail, setDemoDetail] = useState<NodeDetails | null>(null);
+  const [selectedGid, setSelectedGid] = useState('');
+  const [graphMode, setGraphMode] = useState<'global' | 'local'>('global');
+  const [centerGid, setCenterGid] = useState('');
+  const [neighborLimit, setNeighborLimit] = useState(120);
+  const [card, setCard] = useState<NodeCardResponse | null>(null);
+  const [loadingTop, setLoadingTop] = useState(true);
+  const [loadingDetail, setLoadingDetail] = useState(false);
+  const [topError, setTopError] = useState('');
+  const [nodeError, setNodeError] = useState('');
+  const [nodeVersion, setNodeVersion] = useState(0);
+  const request = useRef<AbortController | null>(null);
+  const healthRequest = useRef<AbortController | null>(null);
+  const selectedRef = useRef(selectedGid);
+  selectedRef.current = selectedGid;
+
+  const refreshHealth = useCallback(async () => {
+    if (isDemo) return;
+    healthRequest.current?.abort();
+    const controller = new AbortController();
+    healthRequest.current = controller;
+    setHealthLoading(true); setHealthError('');
+    try {
+      const value = await getHealth(controller.signal);
+      if (!controller.signal.aborted) setHealth(value);
+    } catch (error) {
+      if (!controller.signal.aborted) {
+        setHealth(null);
+        setHealthError(message(error));
+      }
+    } finally {
+      if (healthRequest.current === controller) {
+        healthRequest.current = null;
+        setHealthLoading(false);
+      }
+    }
+  }, []);
+
+  const refreshTop = useCallback(async () => {
+    request.current?.abort();
+    const controller = new AbortController(); request.current = controller;
+    setLoadingTop(true); setTopError('');
+    try {
+      if (isDemo) {
+        const [value, network] = await Promise.all([getTopNodes(), getDemoNetwork()]);
+        if (!controller.signal.aborted) { setDemoNodes(value); setDemoGraph(network); }
+        return null;
+      }
+      void refreshHealth();
+      const value = await getAnalysis(controller.signal);
+      if (controller.signal.aborted) return null;
+      setSnapshot(value);
+      const gid = value?.nodes.some((node) => node.gid === selectedRef.current)
+        ? selectedRef.current : '';
+      setSelectedGid(gid); setCenterGid(gid); setNeighborLimit(120);
+      if (!gid) setGraphMode('global');
+      return value;
+    } catch (error) {
+      if (!controller.signal.aborted) { setTopError(message(error)); throw error; }
+      return null;
+    } finally {
+      if (request.current === controller) { request.current = null; setLoadingTop(false); }
+    }
+  }, [refreshHealth]);
+
+  useEffect(() => {
+    void refreshTop().catch(() => {});
+    return () => { request.current?.abort(); healthRequest.current?.abort(); };
+  }, [refreshTop]);
+  const refresh = useCallback(() => {
+    // A stale card/AI response must not cancel the snapshot read awaited by an import.
+    if (request.current && !request.current.signal.aborted) return;
+    void refreshTop().catch(() => {});
+  }, [refreshTop]);
+  const fullGraph = useMemo(() => isDemo ? demoGraph : snapshot ? analysisGraph(snapshot) : null, [snapshot, demoGraph]);
+  const slice = useMemo(() => graphMode === 'local' && fullGraph
+    ? graphNeighborhood(fullGraph, centerGid, neighborLimit) : null, [graphMode, fullGraph, centerGid, neighborLimit]);
+  const graph = graphMode === 'global' ? fullGraph : slice?.graph ?? null;
+  const nodes = useMemo(() => isDemo ? demoNodes : snapshot ? rankedNodes(snapshot) : [], [snapshot, demoNodes]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    setCard(null); setDemoDetail(null); setNodeError('');
+    if (!selectedGid || (!isDemo && !snapshot)) { setLoadingDetail(false); return; }
+    setLoadingDetail(true);
+    const load = async () => {
+      try {
+        if (isDemo) {
+          const value = await getNodeView(selectedGid);
+          if (controller.signal.aborted) return;
+          setDemoDetail(value.detail);
+        } else {
+          const value = await getNodeCard(selectedGid, controller.signal);
+          if (controller.signal.aborted) return;
+          if (value.analysis_id !== snapshot!.analysis_id) { refresh(); return; }
+          setCard(value);
+        }
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          setNodeError(message(error));
+          if (error instanceof ApiError && ['NO_ANALYSIS', 'GID_NOT_FOUND'].includes(error.code)) refresh();
+        }
+      } finally { if (!controller.signal.aborted) setLoadingDetail(false); }
+    };
+    void load();
+    return () => controller.abort();
+  }, [selectedGid, snapshot, nodeVersion, refresh]);
+
+  const selectNode = (gid: string) => {
+    setSelectedGid(gid);
+    if (graphMode === 'local' && !graph?.nodes.some((node) => node.gid === gid)) { setCenterGid(gid); setNeighborLimit(120); }
+  };
+  const startImport = useCallback<StartImport>(async (files, report, signal) => {
+    try {
+      const uploaded = await uploadAnalysis(files, signal);
+      if (signal.aborted) return;
+      for (const key of ['nodes', 'edges', 'transactions'] as const) report({ type: 'file', key, status: 'ready' });
+      const latest = await refreshTop();
+      if (signal.aborted) return;
+      if (!latest) throw new Error('Расчёт завершён, но результат не получен. Обновите данные исследования.');
+      if (latest.analysis_id !== uploaded.analysis_id) throw new Error('На сервере уже опубликован более новый анализ. На экране показана его версия.');
+      report({ type: 'pipeline', status: 'complete' });
+    } catch (error) {
+      if (signal.aborted) return;
+      if (error instanceof ApiError) {
+        const file = error.details?.file;
+        if (typeof file === 'string') {
+          const key = file.replace(/\.parquet$/i, '') as ImportKey;
+          if (['nodes', 'edges', 'transactions'].includes(key)) report({ type: 'file', key, status: 'error', error: message(error) });
+        }
+      }
+      report({ type: 'pipeline', status: 'error', error: message(error) });
+      throw error;
+    }
+  }, [refreshTop]);
+  const currentCard = card?.node.gid === selectedGid && card.analysis_id === snapshot?.analysis_id ? card : null;
+  const detail = isDemo ? demoDetail : currentCard ? nodeDetails(currentCard.node) : null;
+  const selectedNode = detail || nodes.find((node) => node.gid === selectedGid) || graph?.nodes.find((node) => node.gid === selectedGid) || null;
+  return { nodes, selectedGid, selectNode, selectedNode, detail, card: currentCard, graph, fullGraph, graphMode, snapshot, health,
+    healthLoading, healthError, refreshHealth,
+    loadingTop, loadingDetail, loadingGraph: isDemo ? loadingTop && !demoGraph : loadingTop && !snapshot,
+    topError, nodeError, refreshTop: refresh, refreshNode: () => setNodeVersion((value) => value + 1),
+    startImport: isDemo ? undefined : startImport, analysisId: snapshot?.analysis_id ?? null,
+    showNetwork: () => { setGraphMode('global'); setSelectedGid(''); },
+    recenter: () => {
+      const gid = selectedGid || fullGraph?.nodes[0]?.gid || '';
+      setSelectedGid(gid); setCenterGid(gid); setNeighborLimit(120); setGraphMode('local');
+    },
+    showMoreNeighbors: () => setNeighborLimit((value) => value + 120),
+    totalNeighbors: slice?.totalNeighbors ?? 0, shownNeighbors: slice?.shownNeighbors ?? 0 };
+}

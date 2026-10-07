@@ -1,0 +1,4 @@
+.analysis-history { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin: 0; font-size: 12px; color: var(--color-text-secondary); }
+.analysis-history select { width: auto; max-width: 100%; min-width: 220px; flex: 0 1 420px; border: 1px solid var(--color-border); border-radius: var(--radius-control); padding: 8px; background: var(--color-surface); color: var(--color-text); font: inherit; }
+.analysis-history [role="alert"] { color: var(--color-error); }
+.synthetic-notice { padding: 12px 16px; margin-bottom: 12px; border: 1px solid var(--color-success-border); border-radius: var(--radius-control); background: var(--color-success-bg); color: var(--color-success); font-size: 13px; }

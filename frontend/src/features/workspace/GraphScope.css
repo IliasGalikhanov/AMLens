@@ -1,0 +1,38 @@
+.graph-scope-bar {
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  padding: 10px var(--panel-padding);
+  border-bottom: 1px solid var(--color-border);
+}
+.graph-scope-bar > span { color: var(--color-text-muted); font-size: 10px; }
+.graph-scope {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-graph-bg);
+}
+.graph-scope button {
+  min-height: 28px;
+  padding: 5px 10px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  font-weight: var(--weight-regular);
+}
+.graph-scope button[aria-pressed="true"] {
+  border-color: var(--color-border-strong);
+  background: var(--color-selection-bg);
+  color: var(--color-accent-text);
+}
+.graph-selection { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.graph-selection .text-button { font-size: 10px; }
+@media (max-width: 760px) { .graph-scope-bar { padding-inline: 12px; } }
