@@ -1,40 +1,48 @@
-# Архитектура AMLens
+# AMLens architecture
 
-## Путь данных
+## Data flow
 
 ```mermaid
 flowchart LR
-  P[Три Parquet] --> H[Go HTTP: ограничения размера]
-  H --> V[Проверка схемы и ссылок]
-  V --> A[Louvain, роли, приоритеты]
-  A --> S[Неизменяемый снимок + CSV]
-  S --> DB[(SQLite: транзакция)]
-  DB --> UI[React: сеть, карточки, история]
-  UI --> AI[Необязательный ИИ: выбранный контекст]
+  P[Three Parquet files] --> H[Go HTTP: size limits]
+  H --> V[Schema and reference validation]
+  V --> A[Louvain, roles, priorities]
+  A --> S[Immutable snapshot and CSV]
+  S --> DB[(SQLite transaction)]
+  DB --> UI[React: network, client details, history]
+  UI --> AI[Optional AI: selected context]
 ```
 
-Go — модульный монолит. Domain отвечает за значения, правила и объяснения; application — за сценарии и интерфейсы; infrastructure — за Parquet, граф, SQLite, CSV и ИИ; HTTP-слой — за протокол. Расчёт ролей, кластеров и приоритетов не зависит от LLM.
+Go is organized as a modular monolith. Domain owns values, analytical rules and explanations; application owns use cases and interfaces; infrastructure provides Parquet, graph, SQLite, CSV and AI adapters; the HTTP layer handles the protocol. Roles, clustering and priorities do not depend on an LLM.
 
-Импорт выполняется синхронно. Временные входы удаляются после обработки. Пока идёт новый расчёт, GET видит предыдущий снимок. Один семафор сериализует импорт и выбор исторической версии. Новый снимок публикуется в памяти только после успешного commit базы. Ошибка данных или записи сохраняет прошлый результат. Активная версия восстанавливается до открытия HTTP-порта.
+Imports run synchronously. Temporary inputs are deleted after processing. During a new calculation, GET requests see the previous snapshot. A semaphore serializes import and history activation. A new snapshot is published in memory only after the database transaction commits. Validation or storage failures preserve the previous result. The active version is restored before the HTTP port is opened.
 
-SQLite хранит неизменяемые снимки с внутренними полями объяснений и тремя экспортами. Gob сохраняет int64 и decimal; публичный JSON передаёт идентификаторы строками. user_version=1 фиксирует формат, неизвестная версия останавливает запуск. История возвращает последние 100 записей; хранилище не очищается автоматически.
+SQLite stores immutable snapshots with internal explanation fields and three exports. Gob preserves int64 and decimal values; HTTP JSON uses strings for identifiers. `user_version=1` identifies the storage format; unknown versions prevent startup. History returns the latest 100 entries without automatically deleting older records.
 
-## Граф
+## Graph
 
-Общий вид показывает все узлы и направленные связи, включая отдельные компоненты и изолированные узлы. Локальный вид ограничивает только окружение выбранного клиента. Раскладка больших сетей работает в Web Worker, использует Barnes–Hut и засыпает после стабилизации. Рендеринг — WebGL 2 с Canvas как резервным вариантом. Число подписей ограничено; полный идентификатор доступен при выборе и наведении.
+The global view includes all nodes and directed edges, disconnected components and isolated nodes. The local view limits only the selected client's neighborhood. Large layouts run in a Web Worker using Barnes–Hut repulsion and stop after settling. Rendering uses WebGL 2 with Canvas fallback. Labels are bounded; full identifiers remain available on selection and hover.
 
-Максимальные входные лимиты не равны комфортному объёму графа в браузере. Плотность сети, видеокарта и память влияют на скорость. Измерения физики в Node не являются измерениями FPS браузера.
+Admission limits are not browser rendering performance guarantees. Network density, graphics hardware and memory affect responsiveness. Layout benchmarks in Node do not measure browser FPS.
 
-## Размещение
+## Localization
 
-Caddy отдаёт статическую сборку React и проксирует /api в Go. API не публикует отдельный порт хоста. Оба контейнера работают без root, с read-only корневой системой, отдельными временными каталогами и health checks. SQLite расположен в постоянном томе. Остановка API корректно завершает активные HTTP-запросы в пределах 10 секунд.
+English is the default, with Russian and Kazakh available from the header. The chosen language is stored in browser local storage; unavailable storage leaves the session usable. React subscribers update labels without remounting the application. Dates and numbers use the selected locale, while currency remains KZT.
 
-Обычный режим — одно общее рабочее пространство, один процесс API, локально либо за VPN. Нет аккаунтов, прав доступа, персональных кабинетов и изоляции организаций. Запуск нескольких API с общей SQLite не поддерживается. Для такого расширения потребуются отдельные владельцы анализов, авторизация, фоновые задачи и согласование активной версии.
+The API negotiates `en`, `ru` and `kk` through `Accept-Language`, including regional tags and quality weights, and returns `Content-Language`. Only narrative fields are translated at the presentation boundary. JSON numbers, string identifiers, technical codes and saved snapshots remain unchanged. Existing Russian source explanations are supported without database migration. CSV headers and machine-readable fields remain stable; narrative columns are localized when downloaded.
 
-Публичный режим предназначен для синтетического демо: отдельные том и отметка режима в базе, запрет записи на сервере, ИИ выключен. Генератор исходных Parquet написан в Go и не читает материалы хакатона.
+The frontend refreshes analysis explanations when the language changes. The assistant receives the selected response language as a server instruction. Changing language clears an existing assistant answer and cancels waiting for an in-flight response; it does not issue another AI request.
 
-## Ограничения выводов
+## Deployment
 
-Роли и приоритеты — объяснимые эвристики. Они не доказывают нарушение и не являются вероятностью виновности. Полнота банковского охвата и балансы неизвестны; depth=4 обозначает границу наблюдения. Суммы и n_tx в edges автоматически не сверяются с transactions. Снимки содержат производные финансовые данные, поэтому исключены из Git так же, как входные файлы.
+Caddy serves the static React bundle and proxies `/api` to Go. The API has no separate published host port. Both containers run without root, with read-only root filesystems, temporary directories and health checks. SQLite lives in a persistent volume. Shutdown allows active HTTP requests up to ten seconds to finish.
 
-Контекст ИИ ограничен выбранными узлами и ближайшими связями. Полный набор и сырые операции не отправляются. Проверка ссылок в ответе не гарантирует достоверность текста. Ключ хранится только на сервере.
+Regular mode supports one shared workspace and one API process, locally or behind a VPN. There are no accounts, permissions, personal workspaces or organization isolation. Multiple API processes sharing SQLite are unsupported. Extending to that model requires analysis ownership, authorization, background jobs and coordination of the active version.
+
+The public mode is a synthetic demo with its own volume and database mode marker, server-enforced read-only behavior and disabled AI. The Go Parquet generator does not read hackathon materials.
+
+## Analytical limitations
+
+Roles and priorities are explainable heuristics. They do not prove wrongdoing or express a probability of guilt. Bank coverage and balances are unknown; `depth=4` marks an observation boundary. Edge amounts and `n_tx` are not automatically reconciled against transactions. Snapshots contain derived financial data and are excluded from Git just like source files.
+
+AI context is limited to selected nodes and nearby connections. The complete dataset and raw transactions are not sent. Validating references does not prove the generated text is accurate. API keys are stored only on the server.

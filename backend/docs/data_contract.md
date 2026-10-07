@@ -1,33 +1,39 @@
-# HTTP-контракт AMLens (Go)
+# AMLens HTTP contract (Go)
 
-API по умолчанию http://127.0.0.1:8000. Во всех HTTP JSON gid/src/dst и clusters.top_gids — **десятичные строки int64**. Не преобразовывайте их в JavaScript Number. Счётчики, глубина, rank и cluster_id — числа; суммы — числа KZT для отображения.
+The API defaults to http://127.0.0.1:8000. In all HTTP JSON, `gid`, `src`, `dst` and `clusters.top_gids` are **decimal int64 strings**. Never convert them through JavaScript Number. Counts, depth, rank and cluster IDs are numbers; monetary amounts are KZT numbers for display.
 
-## Маршруты
+## Language
 
-| Метод | Путь | Ответ |
+Send `Accept-Language: en`, `ru` or `kk`. Regional tags and quality weights are supported, for example `kk-KZ,ru;q=0.5`. Missing or unsupported preferences default to English. Responses include `Content-Language` and `Vary: Accept-Language` alongside the existing origin variation.
+
+Messages, evidence, hypotheses, limitations, data gap descriptions, suggested requests and reference facts follow the selected language. The assistant is instructed to use it too. Stored analyses are not rewritten. Field names, role/error codes, identifiers and numeric values are language-independent. CSV narrative columns are translated; column names and numeric representation stay stable.
+
+## Routes
+
+| Method | Path | Response |
 |---|---|---|
 | GET | /api/health | status: "ok", analysis_ready: boolean, ai_configured: boolean, demo_mode: boolean |
 | POST | /api/analyze | analysis_id, status: "ready", summary, analysis_url: "/api/analysis" |
 | GET | /api/analysis | analysis_id, summary, nodes, edges, clusters, top_nodes |
-| GET | /api/analyses | последние 100 записей: analysis_id, created_at (UTC ISO 8601), n_nodes, n_edges |
-| POST | /api/analyses/{id}/activate | полный снимок выбранного анализа; выбор сохраняется в SQLite |
+| GET | /api/analyses | Latest 100 records: analysis_id, created_at (UTC ISO 8601), n_nodes, n_edges |
+| POST | /api/analyses/{id}/activate | Full selected analysis snapshot; activation is persisted in SQLite |
 | GET | /api/nodes/{gid} | analysis_id, node, incoming, outgoing, limitations, data_gaps, next_requests |
-| GET | /api/exports/{name} | CSV; имена nodes_roles.csv, clusters.csv, top_nodes.csv |
+| GET | /api/exports/{name} | CSV: nodes_roles.csv, clusters.csv or top_nodes.csv |
 | POST | /api/ask | analysis_id, answer, references, limitations |
 
-ai_configured сообщает о настройке ключа, модели, URL и таймаута, а не о доступности сервиса.
+`ai_configured` confirms valid key/model/URL/timeout settings, not provider availability.
 
-При demo_mode=true доступны только GET/HEAD. Запросы записи дают 403 DEMO_READ_ONLY, в том числе /api/analyze, /api/ask и activate. Демо не вызывает внешнюю модель.
+With `demo_mode=true`, only GET/HEAD is available. Writes return 403 `DEMO_READ_ONLY`, including analyze, ask and activation. Demo mode never calls an external model.
 
-## Загрузка
+## Upload
 
-multipart/form-data, ровно три файловых поля nodes, edges, transactions. У каждого имя файла заканчивается на .parquet. Дубликаты полей, дополнительные поля, отсутствующие файлы и неверное содержимое отклоняются. Клиентские имена не используются как пути.
+Use multipart/form-data with exactly three file fields: `nodes`, `edges`, `transactions`. Each filename must end in `.parquet`. Duplicate/extra fields, missing files and invalid contents are rejected. Client filenames are never used as storage paths.
 
-25 MiB на файл и 76 MiB на весь body, проверка фактических байтов. Дополнительно ограничены число строк и распакованный размер: см. [README](../../README.md). Схемы и правила — [input-schema.json](../../docs/input-schema.json).
+The server enforces 25 MiB per file and 76 MiB per body by actual bytes read. Row counts and decoded size are also limited; see the [README](../../README.md). Types and constraints are in [input-schema.json](../../docs/input-schema.json).
 
-Ответ приходит после расчёта, подготовки всех CSV и транзакции SQLite. Новый analysis_id публикуется атомарно. Ошибка сохраняет прежний снимок; параллельный расчёт или активация дают 409 ANALYSIS_BUSY. GET продолжает читать предыдущий снимок. После перезапуска восстанавливается активная версия.
+The response is returned after calculation, all CSV preparation and the SQLite transaction. The new analysis ID is published atomically. Failures preserve the previous snapshot; concurrent calculation or activation returns 409 `ANALYSIS_BUSY`. GET requests continue reading the previous snapshot. The active version is restored after restart.
 
-## Поля результата
+## Result fields
 
 - summary: n_nodes, n_edges, n_transactions, n_seed, n_clusters, edge_volume_kzt.
 - node: gid, depth, is_seed, role, role_score, cluster_id, priority_score, evidence, in_deg, out_deg, in_kzt, out_kzt, truncated_by_depth.
@@ -35,39 +41,39 @@ multipart/form-data, ровно три файловых поля nodes, edges, t
 - cluster: cluster_id, n_nodes, n_seed, sum_kzt_internal, top_gids, hypothesis.
 - top_node: rank, gid, role, priority_score, why.
 
-Роли: consolidator, transit, distributor, terminal, coordinator, peripheral. Баллы в [0,1]. Массивы всегда JSON-массивы, включая пустые []. Все узлы и направленные рёбра включены, пагинации нет.
+Role codes: consolidator, transit, distributor, terminal, coordinator, peripheral. Scores are in [0,1]. Arrays are always JSON arrays, including empty `[]`. All nodes and directed edges are included; there is no pagination.
 
-Карточка содержит incoming (dst=gid), outgoing (src=gid), limitations (строки). data_gaps: объекты code/description/evidence; next_requests: gap_code/request/reason, один к одному в том же порядке. Коды: DEPTH_BOUNDARY, SEED_INCOMING_INCOMPLETE, ISOLATED_NODE, OUTFLOW_EXCEEDS_INFLOW, COVERAGE_UNKNOWN, LIMITED_PERIOD, BALANCES_UNAVAILABLE. Наличие пропущенных операций не утверждается.
+Client cards include incoming edges (`dst=gid`), outgoing edges (`src=gid`) and string limitations. `data_gaps` contains code/description/evidence; `next_requests` contains gap_code/request/reason, paired one-to-one in the same order. Codes: DEPTH_BOUNDARY, SEED_INCOMING_INCOMPLETE, ISOLATED_NODE, OUTFLOW_EXCEEDS_INFLOW, COVERAGE_UNKNOWN, LIMITED_PERIOD, BALANCES_UNAVAILABLE. Missing transactions are not asserted to exist.
 
-## Экспорт
+## Export
 
-Content-Type: text/csv; charset=utf-8. Content-Disposition содержит имя файла. X-Analysis-Id содержит версию снимка; frontend обязан сверять её с открытым графом. CORS разрешает чтение этих заголовков для настроенных origins.
+Content-Type is `text/csv; charset=utf-8`. Content-Disposition provides the filename. X-Analysis-Id identifies the snapshot; the frontend must compare it with the displayed analysis. Configured CORS origins can read these headers.
 
-CSV-схемы сохранены; gid записан точно. В clusters.csv top_gids — JSON-массив целых, при чтении JavaScript сохраняйте их как строки без преобразования через Number.
+CSV schemas are stable and gid values are exact. In `clusters.csv`, top_gids is a JSON array of integers; JavaScript consumers must preserve them as strings without passing through Number.
 
-## AI-вопрос
+## AI question
 
-Пример формы запроса (идентификатор 1 условный; нужен реальный выбранный узел собственного анализа):
+Example shape; identifier 1 is illustrative and must be replaced with a node from the current analysis:
 
 ```json
 {
-  "analysis_id": "идентификатор-из-api-analysis",
-  "question": "Почему этот узел получил такой приоритет?",
+  "analysis_id": "id-from-api-analysis",
+  "question": "Why did this node receive this priority?",
   "context_gids": ["1"]
 }
 ```
 
-analysis_id — непустая строка до 128 символов; question после обрезки пробелов — 1–2000 символов; context_gids — 1–5 уникальных строк int64, существующих в текущем анализе. Числовые gid и неизвестные поля запроса отклоняются.
+`analysis_id` is a non-empty string of up to 128 characters. Trimmed `question` has 1–2000 characters. `context_gids` contains 1–5 distinct int64 strings present in the current analysis. Numeric gid values and unknown request fields are rejected.
 
-answer — текст; references — массив объектов gid и facts (строки из расчёта сервера); limitations — строки. Ответ отображается как текст, не HTML. Если анализ сменился до или во время ответа, 409 STALE_ANALYSIS. Без настройки AI — 503, остальной API работает.
+The response includes answer text, references with gid and server-generated fact strings, and limitations. Render the answer as text, not HTML. If the analysis changes before or during the call, the API returns 409 `STALE_ANALYSIS`. Missing AI configuration returns 503 while the rest of the API remains available.
 
-## Ошибки
+## Errors
 
 ```json
-{"error":{"code":"NO_ANALYSIS","message":"Сначала загрузите три файла и выполните анализ","details":{}}}
+{"error":{"code":"NO_ANALYSIS","message":"Upload three files and run an analysis first","details":{}}}
 ```
 
-| HTTP | Коды |
+| HTTP | Codes |
 |---|---|
 | 403 | DEMO_READ_ONLY |
 | 404 | NO_ANALYSIS, ANALYSIS_NOT_FOUND, GID_NOT_FOUND, EXPORT_NOT_FOUND, NOT_FOUND |
@@ -77,4 +83,4 @@ answer — текст; references — массив объектов gid и facts
 | 503 | AI_UNAVAILABLE |
 | 500 | INTERNAL_ERROR |
 
-Валидация указывает файл, поле и строку, когда они известны; сервер не возвращает секреты или сырые ошибки AI. Cache-Control: no-store. Авторизация не реализована; сервер предназначен для локальной работы.
+Validation identifies the file, field and row when known. The server does not return secrets or raw AI provider errors. Cache-Control is `no-store`. Authentication is not implemented; regular mode is intended for local use.

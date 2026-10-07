@@ -1,18 +1,19 @@
-# Фронтенд AMLens
+# AMLens frontend
 
-React + TypeScript + Vite + Cytoscape.js, обычный CSS. Одноэкранный интерфейс подключён к HTTP API модульного монолита.
+React, TypeScript, Vite, Cytoscape.js and plain CSS. The single-page analyst workspace connects to the Go HTTP API.
 
-## Запуск
+## Development
 
-Node.js `24.11.0` (см. `.nvmrc`), npm `11.6.1`. Из `frontend/`:
+Use Node.js 24.11.0 (see `.nvmrc`) and npm 11.6.1. From `frontend`:
 
-```bash
-npm install && npm run dev
+```sh
+npm ci
+npm run dev
 ```
 
-Для воспроизводимой установки используйте `npm ci`. По умолчанию включён **реальный API**. До загрузки данных отображается пустое состояние; при недоступности бэкенда — ошибка с повтором.
+Real API mode is the default. Before data is uploaded, the workspace is empty. Backend connection failures are shown with a retry action.
 
-Бэкенд запускается отдельно, из `backend/` (Go 1.25.5+; команды для PowerShell):
+Start Go separately from `backend` (Go 1.25.5+). Example for PowerShell:
 
 ```powershell
 go mod download
@@ -20,74 +21,62 @@ if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 go run ./cmd/amlens serve --env-file .env
 ```
 
-Vite проксирует `/api` на `http://127.0.0.1:8000`; браузер открывает `http://127.0.0.1:5173`. HTTP-контракт: [backend/docs/data_contract.md](../backend/docs/data_contract.md). Для другого порта/домена скопируйте `.env.example` в `.env` и задайте `VITE_API_BASE_URL`. При прямых запросах на другой origin включите origin фронтенда в backend `CORS_ORIGINS`. После изменения env перезапустите Vite.
+Vite proxies `/api` to http://127.0.0.1:8000 and normally serves the frontend at http://127.0.0.1:5173. For another API origin, copy `.env.example` to `.env` and set `VITE_API_BASE_URL`. Direct cross-origin requests also require the frontend origin in backend `CORS_ORIGINS`. Restart Vite after changing its environment.
 
-Для AI настройте серверные параметры в `backend/.env` согласно `backend/README.md`. Команда выше загружает этот файл через `--env-file .env`; без этого флага сервер не читает файл автоматически. После изменения `.env` перезапустите бэкенд. Ключи никогда не помещаются в `VITE_*`. Без настроенного AI остальной анализ работает.
+Configure AI in `backend/.env` as described in the [backend guide](../backend/README.md). Go only reads that file when `--env-file .env` is supplied. Restart the backend after changes. Never put keys in `VITE_*` variables. Graph analysis works without AI.
 
-Готовность AI проверяется при раскрытии чата и по кнопке «Проверить подключение». Эта проверка не сбрасывает граф или выбор клиента. Ошибка соединения показывается отдельно от отсутствующей конфигурации. `ai_configured=true` подтверждает настройку сервера; доступность модели и корректность ключа проверяются при отправке вопроса.
+AI readiness is checked when opening the assistant and with “Check connection”. This does not reset the graph or selected client. Network errors and missing configuration are distinguished. `ai_configured=true` confirms server settings; the key and model are exercised only when sending a question.
 
-Docker Compose уже включает Caddy с reverse proxy для `/api`. При другом размещении настройте reverse proxy либо задайте полный `VITE_API_BASE_URL` **до сборки**. Dev proxy Vite не входит в production bundle. Один процесс API обслуживает общее рабочее пространство без аутентификации; история хранится в SQLite и переживает перезапуск.
+Docker Compose already includes Caddy as a reverse proxy. For another deployment, configure a proxy or set the full `VITE_API_BASE_URL` before building. Vite's development proxy is not part of the production bundle. One API process serves a shared workspace without authentication; SQLite history survives restart.
 
-## Фактический API
+## Localization
 
-Каноническая спецификация: [backend/docs/data_contract.md](../backend/docs/data_contract.md). Интеграция использует маршруты ниже; типы данных находятся в `src/shared/contracts.ts`.
+English is the initial language. The header selector provides English, Russian and Kazakh. The choice is stored as `amlens.language` in local storage and synchronized across tabs. Blocked storage does not prevent changing the current session language.
 
-| Endpoint | Использование |
-| --- | --- |
-| `GET /api/health` | Доступность, готовность анализа и конфигурация AI |
-| `POST /api/analyze` | Три multipart-поля `nodes`, `edges`, `transactions`; ответ после расчёта |
-| `GET /api/analysis` | Полный снимок: узлы, рёбра, кластеры, топ, сводка |
-| `GET /api/nodes/{gid}` | Метрики клиента, связи, ограничения, пробелы и запросы для проверки |
-| `GET /api/exports/{name}` | `nodes_roles.csv`, `clusters.csv`, `top_nodes.csv` |
-| `POST /api/ask` | Вопрос по текущему `analysis_id` и выбранному клиенту |
+`src/i18n/messages.json` contains the three translations. `core.ts` handles preferences and interpolation; `react.ts` provides the subscription hook. Components translate visible labels and accessible names. Dates, amounts and scores use the active locale; currency remains KZT. The document title and HTML language also update.
 
-Все HTTP-запросы и env собраны в `src/shared/api/`. Wire DTO находятся в `src/shared/api/types.ts`; адаптация к неизменному GraphView — в `features/workspace/analysisModel.ts`. Идентификаторы int64 остаются строками при поиске, сопоставлении и отправке. Ошибки `{error:{code,message,details}}` показываются в контексте операции; устаревшие запросы отменяются.
+API requests carry `Accept-Language`. Switching language refreshes analysis descriptions while preserving the chosen client and list filters. Existing assistant answers are cleared and pending answers are cancelled; no replacement AI request is sent automatically. User questions, filenames and identifiers are not translated.
 
-`VITE_API_MOCK=true` явно включает синтетические JSON-фикстуры. Общий демограф содержит только связи из фикстуры; подробная демо-карточка есть для gid 1005. В деморежиме отправка файлов и AI отключены. Автоматического перехода на демоданные при сбое сервиса нет.
+## API integration
 
-## Сценарий аналитика
+The canonical contract is [backend/docs/data_contract.md](../backend/docs/data_contract.md).
 
-1. Раскрыть импорт и выбрать/перетащить три Parquet. Локально проверяются расширение, размер до 25 МиБ, маркеры PAR1 и границы метаданных. Это проверка оболочки, а не колонок.
-2. «Загрузить и запустить» отправляет единый набор. API синхронный: точного процента или job polling нет. Слоты показывают ожидание ответа, становятся готовыми после успешного ответа; статус расчёта отдельно подтверждается получением снимка. Ошибка с `details.file` подсвечивает соответствующий слот. Неудачная загрузка сохраняет предыдущий анализ.
-3. Статистика считается по **всему анализу**, включая изолированные узлы; оборот — по всем рёбрам, компонента — слабая связность. Текущий `analysis_id` и число транзакций видны над статистикой.
-4. Поиск доступен по всем узлам, включая отсутствующие в серверном top. Enter выбирает точный gid; клавиша `/` раскрывает список и фокусирует поиск. Кластер, роль и порог 0.8 фильтруют список совместно. Список выводится порциями по 40; фильтры и поиск используют полный набор.
-5. По умолчанию открыт режим **«Вся сеть»**: все клиенты и все направленные связи из загруженного анализа, включая отдельные компоненты и клиентов без переводов. Лимита в 120 соседей в этом режиме нет. Выбор узла или поиск открывает карточку и подсвечивает связи, сохраняя общую сеть. «Снять выделение» возвращает обзор без подсветки. Кнопка **«Окружение клиента»** показывает выбранный центр и до 120 непосредственных соседей с наибольшим оборотом в обоих направлениях. Все связи между показанными узлами сохраняются; при ограничении есть количество и кнопка расширения. «Вся сеть» возвращает полный граф. Фильтры слева продолжают применяться только к списку участников.
-6. Карточка получает полные метрики из API независимо от размера графа. Ограничения наблюдения, пробелы в данных и следующие запросы показаны отдельными раскрываемыми блоками.
-7. Экспорт предлагает три **серверных** CSV и дополнительный текущий отфильтрованный список. Серверный заголовок `X-Analysis-Id` проверяется перед скачиванием. При импорте CSV в Excel задайте текстовый тип колонки gid, чтобы не округлить int64.
-8. AI-док раскрывается снизу. Вопрос отправляется только по кнопке; ответ — обычный текст, ссылки на клиентов и ограничения. Отмена прекращает ожидание в браузере, но сервер мог продолжить запрос. Устаревший анализ обновляется без автоматического повторного AI-вызова.
+| Endpoint | Purpose |
+|---|---|
+| GET /api/health | Availability, analysis readiness and AI configuration |
+| POST /api/analyze | Three multipart files; response after calculation |
+| GET /api/analysis | Full nodes, edges, clusters, rankings and summary |
+| GET /api/analyses | Saved analysis history |
+| POST /api/analyses/{id}/activate | Restore a saved analysis |
+| GET /api/nodes/{gid} | Client metrics, connections, limitations and data gaps |
+| GET /api/exports/{name} | nodes_roles.csv, clusters.csv, top_nodes.csv |
+| POST /api/ask | Question using the active analysis ID and selected client |
 
-Обновление страницы восстанавливает текущий снимок сервера. Выбранные локальные файлы не сохраняются. Кнопка «Обновить» получает актуальную версию после расчёта другим пользователем.
+HTTP requests and API environment handling live in `src/shared/api`. Wire DTOs are in `types.ts`; UI contracts are in `src/shared/contracts.ts`. `analysisModel.ts` adapts data to the graph. Int64 identifiers stay strings during search, comparison and transmission. Errors are displayed in the relevant operation; obsolete requests are cancelled.
 
-«История анализов» позволяет открыть одну из последних 100 сохранённых версий. Режим синтетического демо определяется ответом API health: он показывает явную пометку о вымышленных данных и скрывает импорт. Запрет записи обеспечивается также сервером.
+`VITE_API_MOCK=true` explicitly enables synthetic frontend JSON fixtures. Its graph only contains fixture edges, and its detailed example card uses gid 1005. Upload and AI are disabled. The application never silently switches to mock data on an API failure. The Compose demo instead runs the real Go analysis on generated Parquet.
 
-## Интерфейс и граф
+## Analyst workflow
 
-Дизайн-токены `src/styles/tokens.css` импортируются первыми в `src/main.tsx`. Светлая зелёно-бело-чёрная тема, компактный приоритет и тонкие границы. Граф использует те же токены.
+1. Open file import and choose or drop three Parquet files. Local checks validate extension, the 25 MiB size limit, PAR1 markers and footer boundaries; column validation belongs to the server.
+2. “Upload and analyze” sends the complete dataset. The API is synchronous, with no precise progress percentage or job polling. Slots become ready after the service confirms completion. Failed imports preserve the previous analysis.
+3. Statistics cover the full analysis, including isolates, and volume comes from all directed edges. List filters do not change these totals or truncate the global graph.
+4. Search exact gid values, filter roles/clusters and inspect a client card. Role and priority explanations remain hypotheses to verify. A local neighborhood can be expanded; the global view includes all clients and links.
+5. Export the filtered list or a server-generated CSV. The client checks the analysis version before accepting a server export. Questions go to AI only after an explicit send action.
 
-Подписи графа рисуются отдельным слоем с фиксированным шрифтом 12 px. Полный gid показан для выбранного узла и при наведении; если вокруг тесно, подпись выносится на свободное место с пунктирной линией. Дополнительно выводится до 12 непересекающихся подписей с различимыми суффиксами. В настройках доступны подписи, плавное движение, отталкивание, длина связей и притяжение к центру. Кнопки −/+ меняют масштаб, кнопка обзора вписывает всю сеть или окружение. Стрелки переводов сохраняются, их размер и толщина рёбер ограничены при увеличении. Выбор клиента сохраняет раскладку.
+The graph uses a Web Worker and Barnes–Hut repulsion. WebGL 2 has a Canvas fallback. Settled layouts stop computing and resume when dragged or adjusted. Changing the network cancels obsolete work. Large dense graphs may still be slow; zoom in or inspect a local neighborhood for detail.
 
-Сети больше 250 узлов рассчитывают расположение в Web Worker; при недоступности Worker расчёт выполняется короткими порциями. Для больших сетей применяется приближение Barnes–Hut, узлы и связи добавляются порциями и отрисовываются через WebGL 2; при недоступности WebGL используется Canvas. После стабилизации расчёт останавливается; перетаскивание или настройки запускают его снова. При смене сети предыдущая работа отменяется. Полный граф не усекается; скорость обзора очень плотных сетей зависит от объёма данных и производительности устройства. Для изучения деталей увеличьте масштаб или откройте окружение клиента.
+Side panels collapse independently. Below 1100 px they open one at a time over the graph and close with Escape. Lists and cards scroll locally. Import and assistant expansion extend the page; reduced-motion preferences are respected.
 
-Сеть занимает всю ширину. Боковые панели независимо сворачиваются в узкие стенки; до 1100 px раскрываются по одной поверх графа и закрываются по Escape. Высота графа независима от импорта и AI-дока: их раскрытие удлиняет страницу. Локальные списки и карточки прокручиваются внутри панелей. Анимации импорта учитывают `prefers-reduced-motion`.
+## Verification
 
-Роли и приоритеты — гипотезы для проверки, не выводы о виновности. Реальные результаты не заменяются фикстурами при ошибках.
-
-## Проверки
-
-```bash
+```sh
 npm test
 npm run build
 ```
 
-Node test runner проверяет API и ошибки через локальные mock fetch, сохранность int64, полноту глобального графа, отдельные компоненты и дальние связи, ограничение только локального окружения, изолированные узлы, статистику полного снимка, фильтры, Parquet и CSV. Внешние AI-запросы тесты не выполняют.
+Node tests cover HTTP errors, int64 preservation, global graph completeness, disconnected components, local limits, statistics, filters, Parquet envelopes, CSV escaping, translation completeness, language preferences and localized API headers. No external AI requests are made.
 
-Из `backend/`:
+From `backend`, also run `go test ./...` and `go vet ./...` for the real API integration tests. Manual checks should cover import, long-ID search, graph/card selection, exports, invalid reimport, history and reload. Verify each language, preference persistence, server errors and AI without configuration. A real AI answer requires a configured key and a deliberate user request.
 
-```powershell
-go test ./...
-go vet ./...
-```
-
-Ручная приёмка: пустой сервер → три валидных Parquet → расчёт → поиск длинного gid → карточка/граф → три CSV → повторная загрузка с неверными колонками (предыдущие результаты сохранены) → перезагрузка страницы. Отдельно проверить недоступный сервис и AI без конфигурации. Платный ответ AI проверяется отдельно при настроенном сервере и явной отправке вопроса.
-
-Автоматические тесты используют синтетические фикстуры. Материалы и результаты анализа набора хакатона в проект не включены.
+All fixtures are synthetic. Hackathon materials and results derived from them are excluded.

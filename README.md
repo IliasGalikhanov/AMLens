@@ -1,49 +1,51 @@
-# AMLens — анализ переводов
+# AMLens — transfer network analysis
 
-Веб-приложение для исследования сети переводов: загрузка трёх Parquet-файлов, общий граф и окружение клиента, эвристические роли, кластеры, приоритеты, карточки с ограничениями наблюдения, CSV-экспорт и необязательный ИИ-помощник. Анализы сохраняются и открываются из истории.
+AMLens helps analysts explore financial transfer networks: import three Parquet files, inspect the entire network or a client's neighborhood, review heuristic roles, clusters and priorities, open client details, export CSV, and optionally ask an AI assistant. Analyses are saved and can be reopened from history.
 
-Стек: Go, React, TypeScript, Cytoscape, SQLite, Docker Compose и Caddy. Python для запуска не нужен. Проект вырос из командного прототипа HackAlem AI; перенос на Go, общий граф и подготовка к самостоятельному запуску выполнены после хакатона.
+**Stack:** Go, React, TypeScript, Cytoscape, SQLite, Docker Compose and Caddy. Python is not required. The project grew out of a team prototype at HackAlem AI; the Go migration, global graph and standalone deployment work were developed after the hackathon.
 
-Лицензия исходного кода: [MIT](LICENSE). Авторство: AMLens contributors; лицензии сторонних компонентов сохранены отдельно.
+**Languages:** English (default), Russian and Kazakh. Choose a language in the header; the browser remembers your choice. Interface text, dates, number formatting, API explanations and CSV narrative fields follow that choice. Currency remains KZT. Documentation is maintained in English.
 
-## Быстрый запуск в Docker
+Source code: [MIT](LICENSE), copyright AMLens contributors. Third-party notices are preserved separately.
 
-Нужны Docker Engine с Compose v2 либо Docker Desktop в режиме Linux containers. Команды выполняются из корня проекта.
+## Quick start with Docker
+
+Install Docker Engine with Compose v2, or Docker Desktop using Linux containers. Run from the repository root:
 
 ```sh
 docker compose up --build -d --wait
 ```
 
-Сайт: http://localhost:8080. Загрузите три собственных Parquet-файла по схеме ниже. Бэкенд доступен только через сайт, порт базы не публикуется. По умолчанию сайт слушает только локальный компьютер.
+Open http://localhost:8080 and upload your three Parquet files using the schema below. The backend is reached through the website; its port is not published separately. The site binds to localhost by default.
 
-### Демо без подготовки данных
+### Demo without preparing data
 
 ```sh
 docker compose -f compose.demo.yaml up --build -d --wait
 ```
 
-Откройте http://localhost:8081. При первом запуске Go создаёт **полностью синтетические** Parquet и рассчитывает настоящий анализ: 60 узлов, 81 связь, 162 операции. Есть отдельные компоненты, цепочки, циклы, узлы без переводов и длинные int64. Исходный датасет не используется. Импорт, переключение анализов и ИИ запрещены сервером; граф, карточки и CSV доступны.
+Open http://localhost:8081. On first startup, Go generates **fully synthetic** Parquet files and runs the actual analysis: 60 nodes, 81 edges and 162 transactions. The dataset includes disconnected components, chains, cycles, isolated nodes and long int64 identifiers. No original hackathon data is used. The server disables imports, analysis activation and AI; graph exploration, client details and CSV downloads remain available.
 
-Обычное приложение и демо имеют разные Compose-проекты и тома. Не объединяйте их Compose-файлы. UI-моки через VITE_API_MOCK нужны только для разработки и не используются этим демо.
+The regular application and demo use separate Compose projects and volumes. Do not combine their Compose files. `VITE_API_MOCK` is a separate frontend development mode and is not used by this demo.
 
-Остановка с сохранением истории:
+Stop while keeping saved analyses:
 
 ```sh
 docker compose down
 docker compose -f compose.demo.yaml down
 ```
 
-Флаг `down --volumes` удаляет сохранённые анализы. Обычный restart/down их сохраняет.
+`down --volumes` deletes saved analyses. Ordinary restart/down preserves them.
 
-Для ИИ в Docker скопируйте корневой `.env.example` в `.env`, заполните OPENAI_API_KEY и OPENAI_MODEL, повторите `docker compose up -d`. В режиме Go без Docker используется **backend/.env** и флаг **--env-file .env**, как описано ниже.
+For AI in Docker, copy the root `.env.example` to `.env`, set `OPENAI_API_KEY` and `OPENAI_MODEL`, then run `docker compose up -d` again. Direct Go execution uses **backend/.env** and **--env-file .env** instead.
 
-[Деплой демо с HTTPS, обновление, резервные копии](docs/deployment.md) · [Архитектура и ограничения](docs/architecture.md) · [Проверки и производительность](docs/verification.md) · [Зависимости и публикация](THIRD_PARTY_NOTICES.md)
+[HTTPS deployment, updates and backups](docs/deployment.md) · [Architecture](docs/architecture.md) · [Verification and performance](docs/verification.md) · [Dependency notices](THIRD_PARTY_NOTICES.md)
 
-## Запуск для разработки без Docker
+## Development without Docker
 
-Требуются Go 1.25.5+ и Node.js 24.11–24.x.
+Requirements: Go 1.25.5+ and Node.js 24.11–24.x.
 
-Первый терминал, из корня проекта:
+First terminal, starting from the repository root:
 
 ```sh
 cd backend
@@ -51,7 +53,7 @@ go mod download
 go run ./cmd/amlens serve
 ```
 
-Второй терминал:
+Second terminal:
 
 ```sh
 cd frontend
@@ -59,48 +61,48 @@ npm ci
 npm run dev
 ```
 
-Откройте адрес Vite, обычно http://localhost:5173. Backend слушает http://127.0.0.1:8000; frontend проксирует /api. Проверка сервера: http://127.0.0.1:8000/api/health.
+Open the Vite address, normally http://localhost:5173. The backend listens at http://127.0.0.1:8000; Vite proxies `/api`. Health endpoint: http://127.0.0.1:8000/api/health.
 
-Загрузите собственные nodes.parquet, edges.parquet и transactions.parquet. До загрузки рабочее пространство пустое. AI для графа, расчёта и экспорта не требуется.
+Upload your `nodes.parquet`, `edges.parquet` and `transactions.parquet`. The workspace is empty until an analysis is loaded. AI is optional; graph analysis and export work without it.
 
-Для синтетического демо вместо обычного serve запустите `go run ./cmd/amlens serve --demo`. Для генерации трёх файлов, которые можно самостоятельно импортировать, выполните из backend `go run ./cmd/amlens demo --output-dir data-demo`. Существующие файлы не заменяются.
+For a synthetic demo, run `go run ./cmd/amlens serve --demo` instead. To generate files you can import yourself, run `go run ./cmd/amlens demo --output-dir data-demo` from `backend`. Existing files are not replaced.
 
-## Какие данные нужны
+## Required input data
 
-Архивы **data.zip**, **starter.zip**, варианты их имён, распакованные материалы хакатона и результаты анализа этих материалов **не входят в проект и не требуются для запуска**. Не добавляйте их в репозиторий. Используйте свои данные, на обработку которых у вас есть разрешение.
+**data.zip**, **starter.zip**, renamed copies, extracted hackathon materials and results derived from those materials **are not included or required**. Do not add them to this repository. Use your own data that you are authorized to process.
 
-Нужны три файла Apache Parquet:
+Provide three Apache Parquet files:
 
-| Файл | Колонка | Тип | Значение |
+| File | Column | Type | Meaning |
 |---|---|---|---|
-| nodes.parquet | gid | int64 | Уникальный обезличенный идентификатор узла |
-| | depth | int8/int16/int32/int64 со знаком | Глубина обхода 0–4 |
-| | is_seed | bool | true ровно для depth=0 |
-| edges.parquet | src, dst | int64 | Отправитель и получатель из nodes |
-| | sum_kzt | float64 | Конечная неотрицательная сумма по направленной паре, KZT |
-| | n_tx | int64 | Положительное число операций по паре |
-| | depth | int8 со знаком | Глубина ребра 1–4 |
-| transactions.parquet | src, dst | int64 | Пара, существующая в edges |
-| | date | Parquet DATE | Календарная дата; физически INT32, дни от 1970-01-01 |
-| | sum_kzt | float64 | Конечная неотрицательная сумма отдельной операции, KZT |
+| nodes.parquet | gid | int64 | Unique pseudonymous node identifier |
+| | depth | signed int8/int16/int32/int64 | Traversal depth, 0–4 |
+| | is_seed | bool | true exactly when depth=0 |
+| edges.parquet | src, dst | int64 | Sender and recipient referencing nodes |
+| | sum_kzt | float64 | Finite non-negative total for the directed pair, KZT |
+| | n_tx | int64 | Positive transaction count for the pair |
+| | depth | signed int8 | Edge depth, 1–4 |
+| transactions.parquet | src, dst | int64 | A pair present in edges |
+| | date | Parquet DATE | Calendar date; physical INT32, days since 1970-01-01 |
+| | sum_kzt | float64 | Finite non-negative amount for an individual transaction, KZT |
 
-Обязательные значения не могут быть null. gid и пары src/dst в edges уникальны. Повторяющиеся отдельные транзакции допустимы. Дополнительные колонки не участвуют в расчёте. Строки с числами и TIMESTAMP вместо DATE не преобразуются автоматически. Arrow date64 при записи в стандартный Parquet DATE также хранится как INT32.
+Required values cannot be null. Node `gid` values and directed `src`/`dst` pairs in edges must be unique. Duplicate individual transactions are allowed. Additional columns are ignored. Numeric strings and TIMESTAMP columns are not converted automatically. Arrow date64 written as standard Parquet DATE also uses physical INT32.
 
-Период произвольный: ограничения на июль 2026 и минимум 5000 KZT удалены. Банковский охват, фильтры выгрузки и остатки неизвестны. Сверка сумм и n_tx из edges с transactions пока не выполняется; подготовьте согласованные таблицы самостоятельно.
+Any reporting period is accepted: the former July 2026 and minimum 5,000 KZT restrictions were removed. Bank coverage, export filters and account balances are unknown. Edge amounts and `n_tx` are not reconciled against transactions automatically; prepare consistent tables yourself.
 
-### Пустые шаблоны
+### Empty templates
 
-Из backend:
+From `backend`:
 
 ```sh
 go run ./cmd/amlens template --output-dir data
 ```
 
-Команда создаёт **три пустых Parquet-файла с правильными типами**, без клиентов и переводов. Для содержательного анализа заполните собственные таблицы инструментом, умеющим писать Parquet. Существующие файлы не перезаписываются. Каталог data и все .parquet исключены из Git.
+This creates **three empty Parquet files with the required types**, without clients or transfers. Populate your own tables using a Parquet-capable tool. Existing files are not overwritten. The `data` directory and all `.parquet` files are excluded from Git.
 
-[Описание схемы для генераторов выгрузки](docs/input-schema.json) содержит только типы и правила, не записи клиентов. Вход API остаётся Parquet.
+The [input schema reference](docs/input-schema.json) describes types and constraints only, without customer records. API inputs remain Parquet files.
 
-## CLI и сборка
+## CLI and build
 
 ```sh
 cd backend
@@ -109,34 +111,34 @@ go run ./cmd/amlens analyze --data-dir data --output-dir out/result-1
 go build -o bin/amlens ./cmd/amlens
 ```
 
-На Windows имя бинарника можно задать как bin/amlens.exe. analyze создаёт новый каталог с nodes_roles.csv, clusters.csv, top_nodes.csv. Существующий каталог результатов не заменяет. Коды завершения: 0 — успех, 1 — ошибка данных/выполнения, 2 — неверные аргументы.
+On Windows, use `bin/amlens.exe` for the executable. `analyze` creates a new directory containing `nodes_roles.csv`, `clusters.csv` and `top_nodes.csv`. It does not replace an existing results directory. Exit codes: 0 success, 1 data/runtime error, 2 invalid arguments. The CLI defaults to English; the website supports all three languages.
 
-## AI и секреты
+## AI and secrets
 
-Создайте локальный backend/.env по образцу backend/.env.example; заполните OPENAI_API_KEY и OPENAI_MODEL. Модель должна быть доступна вашему API-проекту и поддерживать Responses API со Structured Outputs. Ключ хранится только на backend, не в frontend или VITE_*.
+Create `backend/.env` from `backend/.env.example` and set `OPENAI_API_KEY` and `OPENAI_MODEL`. Choose a model available to your API project that supports the Responses API with Structured Outputs. Keys belong on the backend, never in frontend code or `VITE_*` variables.
 
 ```sh
 cd backend
 go run ./cmd/amlens serve --env-file .env
 ```
 
-Файл читается только по явно указанному пути, без выполнения команд; переменные окружения имеют приоритет. Без конфигурации AI выключен.
+The file is read only when explicitly specified, without executing commands. Existing environment variables take precedence. AI is disabled without configuration.
 
-AI получает вопрос, до пяти выбранных узлов, до пяти соседей и до десяти близких рёбер. Сырые транзакции и весь граф не отправляются. Сервер проверяет ссылки, но не может гарантировать достоверность всего текста модели. [Документация формата OpenAI](https://developers.openai.com/api/docs/guides/structured-outputs).
+AI receives the question, up to five selected nodes, five neighbors and ten nearby edges. Raw transactions and the full graph are not sent. The server validates references, but cannot guarantee every statement in the generated answer. The assistant is instructed to answer in the selected language. Changing language clears the displayed answer and cancels waiting; it does not send a new paid request. [OpenAI format documentation](https://developers.openai.com/api/docs/guides/structured-outputs).
 
-## Перед публикацией в GitHub
+## Publication checks
 
 ```sh
 node scripts/check-publication.mjs
 ```
 
-Проверка ищет известные форматы ключей, непустые секреты в .env.example и запрещённые файлы среди кандидатов публикации. При наличии Git проверяет отслеживаемые и неигнорируемые файлы, включая ранее добавленный .env. Содержимое секретов не печатает.
+The check looks for known key formats, non-empty example secrets and forbidden files among publication candidates. With Git, it checks tracked and non-ignored files, including staged content and a previously added `.env`. It does not print secret values.
 
-Корневой .gitignore исключает .env, ключи, архивы, Parquet, таблицы, базы, данные и результаты, включая data.zip и starter.zip. Он не очищает прошлые коммиты и не защищает от git add -f. Если токен уже публиковался, отзовите его у провайдера и создайте новый.
+The root `.gitignore` excludes `.env`, keys, archives, Parquet, spreadsheets, databases, input data and results, including `data.zip` and `starter.zip`. It does not remove earlier commits or prevent `git add -f`. Revoke and replace any token that was previously published.
 
-Репозиторий опубликован с отдельной историей разработки. Правила изменений и коммитов: [CONTRIBUTING.md](CONTRIBUTING.md).
+This repository has its own history. See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution and commit conventions.
 
-## Проверки и ограничения
+## Checks and limitations
 
 ```sh
 cd backend
@@ -150,12 +152,12 @@ node --test scripts/check-publication.test.mjs
 node scripts/check-publication.mjs
 ```
 
-Тесты создают искусственные Parquet во временных каталогах и подменяют AI. Материалы хакатона и платные вызовы не используются.
+Tests generate synthetic Parquet in temporary directories and mock AI. They use neither hackathon data nor paid model calls.
 
-Полная проверка контейнеров: `node scripts/smoke-compose.mjs`. Создаёт временные Compose-проекты, проверяет импорт, CSV, карточки, историю, восстановление после перезапуска и демо, затем удаляет только свои тестовые контейнеры и тома. Нужны свободные порты 18080/18081; их можно изменить переменными SMOKE_APP_PORT/SMOKE_DEMO_PORT.
+Run `node scripts/smoke-compose.mjs` for the complete container workflow. It creates temporary Compose projects, checks import, CSV, client details, history, restart recovery, backup/restore and demo isolation, then removes its own containers and volumes. Ports 18080/18081 must be free, or override them with `SMOKE_APP_PORT`/`SMOKE_DEMO_PORT`.
 
-Приложение рассчитано на одно общее рабочее пространство и один процесс API. Авторизации и разделения данных по пользователям нет. Обычный режим оставляйте локальным или за VPN; для открытого портфолио используйте синтетическое демо. Снимки и CSV сохраняются в SQLite; активный анализ восстанавливается после перезапуска. История показывает последние 100 записей; автоматического удаления старых нет. Временные входы удаляются после обработки.
+The application supports one shared workspace and one API process. Authentication and user data isolation are not implemented. Keep the regular workspace local or behind a VPN; use the synthetic demo for a public portfolio. Snapshots and CSV are stored in SQLite, and the active analysis is restored on restart. History lists the latest 100 entries; old records are not deleted automatically. Temporary inputs are removed after processing.
 
-Лимиты: 25 MiB на файл, 76 MiB на запрос; 100 000 узлов, 250 000 рёбер, 1 000 000 транзакций; до 256 MiB распакованных данных на файл. Это ограничения приёма, а не обещание плавной отрисовки максимальной сети на любом устройстве.
+Input limits: 25 MiB per file, 76 MiB per request, 100,000 nodes, 250,000 edges, 1,000,000 transactions and 256 MiB decoded data per file. These are admission limits, not a promise of smooth rendering at the maximum size on every device.
 
-Роли и приоритеты — эвристики для проверки, не вероятность нарушения и не вывод о виновности. Реализация Louvain на Go использует фиксированный seed и стабильный порядок; границы и номера кластеров могут отличаться от прежнего NetworkX. Подробнее: [backend/README.md](backend/README.md), [HTTP-контракт](backend/docs/data_contract.md).
+Roles and priorities are review heuristics, not probabilities of wrongdoing or findings of guilt. The Go Louvain implementation uses a fixed seed and stable ordering; cluster boundaries and numbers can differ from the former NetworkX implementation. See the [backend guide](backend/README.md) and [HTTP contract](backend/docs/data_contract.md).

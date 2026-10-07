@@ -1,6 +1,6 @@
-# Проверки и измерения
+# Verification and measurements
 
-## Воспроизвести
+## Reproduce
 
 ```sh
 cd backend
@@ -16,53 +16,58 @@ node scripts/check-publication.mjs
 node scripts/smoke-compose.mjs
 ```
 
-GitHub Actions описывает два задания: тесты/сборка и контейнерный сценарий с чистыми томами. Linux CI дополнительно запускает Go race detector. Статус каждого удалённого запуска доступен в [GitHub Actions](https://github.com/IliasGalikhanov/amlens/actions/workflows/ci.yml); наличие workflow само по себе не означает успешного прохождения проверок.
+GitHub Actions has two jobs: tests/build and a container workflow with clean volumes. Linux CI also runs the Go race detector. Check the actual status in [GitHub Actions](https://github.com/IliasGalikhanov/AMLens/actions/workflows/ci.yml); a workflow definition alone is not evidence of a successful run.
 
-Тесты не используют данные хакатона и не вызывают платный ИИ. Синтетические тесты покрывают направленность переводов, сохранность длинных int64, decimal-сумм и внутренних объяснений, ошибки схем, ограничения размера, неудачную запись SQLite, историю, отказ открытия приватной базы в demo-режиме и запрет POST в демо.
+Tests use no hackathon data or paid AI calls. Synthetic cases cover directed transfers, long int64 values, decimal amounts, internal explanations, invalid schemas, size limits, failed SQLite writes, history, refusal to open a private database in demo mode and the demo write restriction.
 
-Контейнерный smoke-тест создаёт отдельные проекты с именами amlens-check-*, импортирует три настоящих Parquet, получает карточку и все CSV, создаёт второй анализ, активирует первый, пробует неверный импорт и перезапускает API. Затем сравнивает граф, карточку и CSV с исходным результатом и проверяет отдельное демо. После проверки удаляет только свои контейнеры и тома.
+The container smoke test creates `amlens-check-*` projects, imports three generated Parquet files, checks client details and all CSV files, creates a second analysis, activates the first, rejects an invalid import and restarts the API. It compares graph/card/export results, checks database backup and restore, and verifies the isolated demo. It cleans up only its own containers and volumes. HTTP probes use fresh connections across synchronous container restarts.
 
-## Локальные результаты, 7 октября 2026
+Localization tests cover English fallback, saved language preferences, blocked browser storage, all three catalogs, interpolation placeholders, API language headers, weighted language negotiation, every backend message template, CSV translation and preservation of numeric JSON tokens, identifiers, user text and stored snapshots.
 
-Среда: Windows, AMD Ryzen 5 5600H, Node.js 24.11.0, Go 1.25.5; Docker Desktop с Linux Engine 29.4.0. Пройдены Go-тесты, go vet, сборка frontend и контейнерный сценарий. Импорт демонстрационных 60 узлов / 81 связи / 162 операций через Caddy занял 29 мс в одном прогоне. Это маленький тестовый набор, не нагрузочная гарантия.
+## Baseline results, 7 October 2026
 
-В браузере проверены настоящий импорт трёх файлов, появление результатов и истории, повторный расчёт и открытие прежней версии.
+Environment: Windows, AMD Ryzen 5 5600H, Node.js 24.11.0, Go 1.25.5; Docker Desktop with Linux Engine 29.4.0. Go tests, go vet, frontend build and the container workflow passed. A synthetic import of 60 nodes / 81 edges / 162 transactions through Caddy took 29 ms in one run. This is a small functional dataset, not a load guarantee.
 
-Пройдены 55 тестов frontend и 5 проверок подготовки публикации. Дополнительно проверено резервное копирование и восстановление остановленной SQLite через Docker Compose. В браузере синтетическое демо показывает пометку о вымышленных данных, скрывает импорт и открывает граф с карточкой выбранного узла; ошибок в консоли при проверке не было.
+Browser checks covered real three-file import, results and history, repeated analysis and opening a previous version. The initial release passed 55 frontend tests and five publication checks. Stopped-SQLite backup/restore was tested through Compose. The synthetic demo showed its fictional-data notice, hid import and opened graph/client details without browser console errors.
 
-### Серверный расчёт
+The published baseline also passed both [GitHub Actions jobs](https://github.com/IliasGalikhanov/AMLens/actions/runs/37612475090), including Go race detection and the Linux container scenario. Subsequent revisions have their own workflow results.
+
+### Server calculation
 
 ```sh
 cd backend
 go test ./tests/integration -run "^$" -bench BenchmarkAnalysis -benchtime=3x -benchmem
 ```
 
-Синтетические цепочки по 100 узлов, один перевод на ребро; три повторения. Измеряются валидация домена, Louvain, показатели/роли и подготовка CSV. Чтение Parquet, сеть и SQLite не входят.
+Synthetic chains of 100 nodes, one transfer per edge, three repetitions. This measures domain validation, Louvain, metrics/roles and CSV preparation. Parquet reading, HTTP localization, network and SQLite are excluded.
 
-| Узлов | Рёбер / транзакций | Среднее время | Выделено памяти за расчёт |
+| Nodes | Edges / transactions | Mean time | Allocated memory per calculation |
 |---:|---:|---:|---:|
-| 1 000 | 990 | 16,6 мс | 9,4 MB |
-| 5 000 | 4 950 | 82,6 мс | 46,7 MB |
-| 10 000 | 9 900 | 159,2 мс | 95,2 MB |
+| 1,000 | 990 | 16.6 ms | 9.4 MB |
+| 5,000 | 4,950 | 82.6 ms | 46.7 MB |
+| 10,000 | 9,900 | 159.2 ms | 95.2 MB |
 
-Выделенная память — сумма аллокаций benchmark, не пиковое потребление процесса. Плотные сети могут вести себя иначе.
+Allocated memory is cumulative benchmark allocation, not peak process memory. Dense networks can behave differently.
 
-### Физика расположения графа
+### Graph layout physics
 
 ```sh
 node scripts/benchmark-graph.mjs
 ```
 
-Синтетическая цепь, 5 прогревочных и 30 измеренных шагов:
+Synthetic chain, five warm-up and 30 measured steps:
 
-| Узлов | Рёбер | Медиана шага | P95 шага |
+| Nodes | Edges | Median step | P95 step |
 |---:|---:|---:|---:|
-| 1 000 | 999 | 3,59 мс | 5,33 мс |
-| 5 000 | 4 999 | 27,28 мс | 34,31 мс |
-| 10 000 | 9 999 | 52,91 мс | 72,19 мс |
+| 1,000 | 999 | 3.59 ms | 5.33 ms |
+| 5,000 | 4,999 | 27.28 ms | 34.31 ms |
+| 10,000 | 9,999 | 52.91 ms | 72.19 ms |
 
-Замер выполнен в Node и отражает CPU-работу раскладки. Он не включает GPU, отрисовку Cytoscape, подписи, браузер и реакцию на ввод; из него нельзя выводить FPS. Web Worker сохраняет отзывчивость основного потока, но крупный граф всё ещё может тормозить. Дизайн и действующий рендерер в этой доработке не менялись.
+This Node measurement reflects layout CPU work. It excludes GPU rendering, Cytoscape drawing, labels, browser overhead and input response; it cannot be interpreted as FPS. A Web Worker keeps layout work off the main thread, but large graphs can still be slow.
 
-## Что ещё требует внешней среды
+## Localization checks, 7 October 2026
 
-Получение реального HTTPS-сертификата требует домена и сервера. Локально проверяется конфигурация Caddy. Публичный деплой и запуск GitHub Actions в этой работе не выполнялись. Реальный ответ ИИ требует собственного ключа и отдельной отправки вопроса пользователем.
+The localized revision passed 59 frontend tests, Go tests and go vet, the frontend build and five publication checks locally. Browser checks covered the English default, Russian and Kazakh labels and server explanations, a preserved selected client and search filter, persistence after reload, rapid switching during an in-flight analysis request, and the mobile language selector without horizontal overflow. No browser page errors were observed. AI language instructions were verified with a mock transport; no paid provider request was made.
+## Checks requiring an external environment
+
+A real HTTPS certificate requires a domain and server; local checks validate Caddy configuration only. A public deployment has not been performed. A real AI answer requires a user-provided key and a separate, deliberate question submission.

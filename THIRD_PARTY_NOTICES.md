@@ -1,12 +1,12 @@
-# Лицензия и зависимости
+# License and dependencies
 
-Исходный код AMLens публикуется под [MIT](LICENSE). Copyright: AMLens contributors. Проект вырос из командной работы на HackAlem AI; последующие изменения и контейнерная упаковка относятся к развитию проекта после соревнования.
+AMLens source code is published under [MIT](LICENSE). Copyright: AMLens contributors. The project grew out of team work at HackAlem AI; subsequent development and container packaging took place after the competition.
 
-MIT проекта не заменяет лицензии сторонних библиотек и не распространяется на пользовательские финансовые данные или материалы организаторов хакатона. В репозитории нет data.zip, starter.zip, исходного набора и результатов его обработки.
+The project license does not replace third-party licenses or apply to user financial data or hackathon organizers' materials. This repository does not contain `data.zip`, `starter.zip`, the original dataset or results derived from it.
 
-Тексты лицензий библиотек, входящих в Go-бинарник (Linux/Windows amd64) и браузерную сборку React, сохранены в [third_party](third_party/README.md). Там же указаны версии. Содержимое скопировано из установленных пакетов без изменения авторства.
+License texts for libraries included in the Go binary (Linux/Windows amd64) and React browser bundle are preserved in [third_party](third_party/README.md), together with their versions. They were copied from installed packages without changing attribution.
 
-Обновление списка после изменения зависимостей:
+Refresh the inventory after changing dependencies:
 
 ```sh
 cd frontend
@@ -17,6 +17,6 @@ cd ..
 node scripts/collect-licenses.mjs
 ```
 
-Перед публикацией сверяйте список с go.mod/go.sum и package-lock.json. Инструменты сборки (Node.js, npm, TypeScript, Vite, Go toolchain), Caddy и базовые Linux-образы имеют собственные лицензии и уведомления в своих дистрибутивах. Текущая сборка контейнеров копирует LICENSE и third_party вместе с приложением.
+Before publishing, compare the inventory with `go.mod`, `go.sum` and `package-lock.json`. Build tools (Node.js, npm, TypeScript, Vite and the Go toolchain), Caddy and base Linux images carry their own licenses and notices in their distributions. Container builds copy `LICENSE` and `third_party` with the application.
 
-README и история проекта должны сохранять сведения о командном происхождении прототипа. Синтетические примеры создаются программно; это не обезличенная копия исходного датасета.
+The README and project history should preserve the prototype's team origin. Synthetic examples are generated programmatically; they are not anonymized copies of the original dataset.

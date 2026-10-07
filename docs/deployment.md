@@ -1,8 +1,8 @@
-# Запуск и эксплуатация
+# Deployment and operations
 
-## Локально в Docker
+## Local Docker installation
 
-Требуется Linux Docker Engine с Compose v2 либо Docker Desktop (Linux containers). Для публичного override требуется Compose **2.24.4+**. Из корня:
+Use Linux Docker Engine with Compose v2 or Docker Desktop with Linux containers. The public demo override requires Compose **2.24.4+**. From the root:
 
 ```sh
 docker compose up --build -d --wait
@@ -10,35 +10,35 @@ docker compose ps
 docker compose logs --tail 100
 ```
 
-Сайт: http://localhost:8080, проверка API: http://localhost:8080/api/health. Backend не доступен отдельным портом снаружи. На Windows Docker Desktop должен быть запущен.
+Website: http://localhost:8080. Health: http://localhost:8080/api/health. The backend has no separate public host port. Docker Desktop must be running on Windows.
 
-Если порт занят, скопируйте .env.example в корневой .env и измените APP_PORT. AI необязателен: там же OPENAI_API_KEY и OPENAI_MODEL. После изменения окружения используйте `docker compose up -d`; простой restart не перечитывает Compose env. Не публикуйте вывод `docker compose config` с заполненными секретами.
+If the port is occupied, copy `.env.example` to the root `.env` and change `APP_PORT`. AI is optional: configure `OPENAI_API_KEY` and `OPENAI_MODEL` there. After changing environment variables, run `docker compose up -d`; a restart alone does not reload Compose environment settings. Do not share `docker compose config` output containing secrets.
 
-Go без Docker читает другой файл — backend/.env, только с флагом --env-file .env. Не используйте VITE_* для секретов. Контейнеры не копируют .env и пользовательские данные в образ.
+Direct Go execution reads a different file, `backend/.env`, only with `--env-file .env`. Never use `VITE_*` for secrets. Container images do not include `.env` or user data.
 
-## Синтетическое демо
+## Synthetic demo
 
 ```sh
 docker compose -f compose.demo.yaml up --build -d --wait
 ```
 
-Открывается http://localhost:8081. Используется отдельный проект amlens-demo и том demo-analyses. DEMO_PORT настраивается в корневом .env. Не добавляйте compose.yaml к этой команде: обычный и демонстрационный режимы имеют независимые определения.
+Open http://localhost:8081. This uses a separate `amlens-demo` project and `demo-analyses` volume. Configure `DEMO_PORT` in the root `.env`. Do not add `compose.yaml` to this command: regular and demo modes have independent definitions.
 
-## Публичное демо с HTTPS
+## Public demo with HTTPS
 
-На Linux-сервере установите Docker/Compose, скопируйте исходники, направьте A/AAAA домена на сервер и откройте входящие TCP 80/443 (UDP 443 необязателен, нужен для HTTP/3). В корневом .env укажите DOMAIN, например demo.example.org, без https:// и пути.
+On a Linux server, install Docker/Compose, copy the source, point the domain's A/AAAA records to the server and allow inbound TCP 80/443. UDP 443 is optional for HTTP/3. Set `DOMAIN` in the root `.env`, for example `demo.example.org`, without a scheme or path.
 
 ```sh
 docker compose -f compose.demo.yaml -f compose.public-demo.yaml up --build -d --wait
 ```
 
-Сайт будет доступен по https://ваш-домен. Caddy запрашивает и обновляет сертификат автоматически; для этого домен должен разрешаться в этот сервер и проверка центра сертификации должна проходить. Сертификаты хранятся в отдельных томах. Локальная проверка конфигурации не подтверждает получение реального сертификата.
+The site will be available at your HTTPS domain. Caddy requests and renews certificates automatically; DNS and certificate authority validation must reach this server. Certificates are stored in separate volumes. Local configuration validation does not demonstrate successful issuance of a real certificate.
 
-Этот override применяйте только к синтетическому демо. Для анализа частных данных используйте локальную установку или VPN: пользовательская авторизация в приложении отсутствует.
+Use this override only for the synthetic demo. Keep private analysis local or behind a VPN because the application does not implement user authentication. English is the initial interface language; visitors can select Russian or Kazakh without server configuration.
 
-## Обновление и откат
+## Updates and rollback
 
-Перед обновлением сохраните резервную копию базы и текущую версию исходников. Затем:
+Before updating, back up the database and record the current source revision. Then:
 
 ```sh
 docker compose build --pull
@@ -46,15 +46,15 @@ docker compose up -d --wait
 docker compose logs --tail 100 backend
 ```
 
-Для демо добавляйте тот же набор -f, что использовали при запуске. Образы базовых платформ закреплены на ветках Go 1.25 / Node 24 / Caddy 2 / Alpine 3.22; patch-обновления приходят при --pull. go.sum и package-lock.json закрепляют зависимости приложения. Для полностью фиксированного релиза сохраните digest собранных образов.
+For demo deployments, use the same `-f` files as at startup. Base image branches are Go 1.25, Node 24, Caddy 2 and Alpine 3.22; `--pull` picks up patch releases. `go.sum` and `package-lock.json` pin application dependencies. Record built image digests for an immutable deployment.
 
-Для отката восстановите предыдущие исходники и совместимую резервную копию базы, пересоберите и запустите. Не открывайте базу новой версии старым приложением без проверки совместимости.
+To roll back, restore the previous source and a compatible database backup, rebuild and start. Check compatibility before opening a newer database with an older application.
 
-## Резервное копирование
+## Backups
 
-Обычный `docker compose down` сохраняет том. `down --volumes` удаляет его. База содержит граф, показатели, объяснения и CSV; исходные Parquet не сохраняются. История не имеет автоматического срока хранения — следите за размером тома.
+Ordinary `docker compose down` preserves the volume; `down --volumes` deletes it. SQLite contains the graph, metrics, explanations and CSV, but not original Parquet files. History has no automatic retention limit; monitor volume size.
 
-Безопасная простая копия при остановленном API, из корня проекта:
+For a simple backup with the API stopped, run from the root:
 
 ```sh
 docker compose stop backend
@@ -62,7 +62,7 @@ docker compose cp backend:/var/lib/amlens/analyses.db ./analyses-backup.db
 docker compose start backend
 ```
 
-Сделайте копию до обновления и храните её вне публичного репозитория. Для восстановления остановите backend, сохраните отдельно текущую базу, затем:
+Back up before updating and keep the backup outside the public repository. To restore, stop the backend and separately preserve its current database, then:
 
 ```sh
 docker compose cp ./analyses-backup.db backend:/var/lib/amlens/analyses.db
@@ -70,10 +70,10 @@ docker compose run --rm --no-deps --user 0 --cap-add CHOWN --entrypoint chown ba
 docker compose start backend
 ```
 
-Не копируйте активную SQLite обычным файловым копированием: сначала остановите API, чтобы завершились транзакции. Проверьте /api/health, историю, карточку и CSV после восстановления. Резервную копию можно проверять в отдельном Compose-проекте.
+Do not use ordinary file copying on a live SQLite database: stop the API first to finish transactions. Verify health, history, a client card and CSV after restoring. A separate Compose project can be used to validate backups.
 
-## Диагностика
+## Diagnostics
 
-Health API подтверждает запуск и наличие активного снимка; ai_configured сообщает наличие настроек, не проверяет внешний провайдер. Логи: `docker compose logs --tail 100 backend frontend`. Они не содержат API-ключа или тел загруженных таблиц. Ошибка открытия/декодирования базы останавливает запуск; приложение не сбрасывает её автоматически.
+Health reports server readiness and the presence of an active analysis. `ai_configured` confirms configuration, not external provider availability. Read logs with `docker compose logs --tail 100 backend frontend`. Logs do not include API keys or uploaded table bodies. A database opening/decoding failure stops startup; the application does not silently reset the database.
 
-При unhealthy проверьте логи, свободный диск и доступность Docker. Не удаляйте том для исправления ошибки. При 413 уменьшите выгрузку; при 422 исправьте указанные колонку/строку; при 409 дождитесь завершения текущего расчёта и обновите страницу. При медленном общем графе откройте окружение клиента.
+For an unhealthy container, check logs, free disk space and Docker availability. Do not delete the volume as a repair shortcut. For HTTP 413, reduce the input size; for 422, correct the indicated field/row; for 409, wait for the active operation and refresh. If the global graph is slow, explore a client's neighborhood.

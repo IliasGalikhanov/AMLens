@@ -1,20 +1,28 @@
-# Вклад в AMLens
+# Contributing to AMLens
 
-Фронтенд и бэкенд находятся в одном репозитории: изменения API и интерфейса можно проверять вместе. Стабильная ветка — main; для изменений создавайте короткоживущие ветки и pull request.
+Frontend and backend share one repository so API and interface changes can be reviewed together. `main` is the stable branch. Use short-lived branches and pull requests for changes.
 
-## Коммиты
+## Commits
 
-Используем Conventional Commits для всех языков. Язык кода не меняет формат коммита:
+Use Conventional Commits for every language:
 
-- feat(backend): add analysis endpoint
-- fix(frontend): preserve selected graph node
-- test(backend): cover invalid imports
-- build(docker): update runtime image
-- ci: verify deployment workflow
-- docs: explain input schema
+- `feat(backend): add analysis endpoint`
+- `fix(frontend): preserve selected graph node`
+- `test(backend): cover invalid imports`
+- `build(docker): update runtime image`
+- `ci: verify deployment workflow`
+- `docs: explain input schema`
 
-Один коммит должен решать одну логическую задачу; тесты изменения включайте в тот же коммит. Не добавляйте реальные данные клиентов, архивы хакатона, базы, результаты анализа и ключи. Используйте синтетические примеры.
+Keep each commit focused on one logical change and include its tests. Do not add real customer data, hackathon archives, databases, analysis results or keys. Use synthetic examples.
 
-## Перед pull request
+## Localization
 
-Запустите проверки из [README](README.md#проверки-и-ограничения). Изменения контейнеров дополнительно проверяйте командой node scripts/smoke-compose.mjs. Обновляйте документацию при изменении HTTP-контракта, схем входных данных и настроек запуска.
+The frontend catalog is `frontend/src/i18n/messages.json`. Each entry has `en`, `ru` and `kk`; existing Russian source phrases serve as stable message keys. Preserve every `{0}`, `{1}` interpolation placeholder. Use `t()` in rendered text and `useLocale()` in components; never evaluate translated labels once at module startup. Use the active locale for display formatting and keep identifiers as strings.
+
+Backend presentation translations live in `backend/internal/i18n/messages.json`, with source phrases matching persisted analytical explanations. Preserve printf placeholders and their order. Localization happens when serializing a response, without rewriting stored snapshots. Machine-readable field names, role codes, identifiers and numeric values remain unchanged.
+
+English is the initial language. Do not infer the initial preference from browser language; respect the saved choice. Documentation is maintained in English. Update all three translations when adding interface text and run localization tests with the normal test suites.
+
+## Before a pull request
+
+Run the [README checks](README.md#checks-and-limitations). For container changes, also run `node scripts/smoke-compose.mjs`. Update documentation when changing HTTP contracts, input schemas or deployment settings.

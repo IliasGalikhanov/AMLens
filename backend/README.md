@@ -1,10 +1,10 @@
-# AMLens — Go backend
+# AMLens Go backend
 
-Go 1.25.5+, модульный монолит. Рабочий вход: cmd/amlens. Python и NetworkX для запуска не нужны.
+Go 1.25.5+, organized as a modular monolith. Entry point: `cmd/amlens`. Python and NetworkX are not required.
 
-## Команды
+## Commands
 
-Из backend:
+From `backend`:
 
 ```sh
 go run ./cmd/amlens serve
@@ -19,74 +19,80 @@ go test ./...
 go vet ./...
 ```
 
-template создаёт пустые файлы со схемой; существующие файлы не заменяет. analyze публикует три готовых CSV в новом каталоге; существующий каталог не заменяет. Ошибка данных/выполнения даёт exit 1, неверные аргументы — 2.
+`template` creates empty files with the required schema and does not replace existing files. `analyze` writes three CSV files into a new directory and refuses an existing output directory. Exit 1 indicates a data/runtime error; exit 2 indicates invalid arguments.
 
-[Схемы входных файлов и подготовка данных](../README.md#какие-данные-нужны). [HTTP API](docs/data_contract.md).
+[Input schemas and data preparation](../README.md#required-input-data) · [HTTP API](docs/data_contract.md).
 
-## Архитектура
+## Architecture
 
-- internal/domain: сущности, валидация значений, роли, приоритеты, объяснения и ограничения наблюдения.
-- internal/application: сценарии validate/analyze/publish/ask, интерфейсы адаптеров и один неизменяемый активный снимок под блокировкой.
-- internal/infrastructure: Parquet, взвешенный Louvain, CSV, временные загрузки, OpenAI.
-- internal/presentation/httpapi: HTTP, CORS, multipart, проверка JSON, статусы и ответы.
-- cmd/amlens: связывание адаптеров, CLI, запуск и остановка сервера.
+- `internal/domain`: entities, value validation, roles, priorities, explanations and observation limits.
+- `internal/application`: validate/analyze/publish/ask use cases, adapter interfaces and an immutable active snapshot protected by a lock.
+- `internal/infrastructure`: Parquet, weighted Louvain, CSV, temporary uploads, SQLite and OpenAI adapters.
+- `internal/presentation/httpapi`: HTTP, CORS, multipart, JSON validation, statuses and responses.
+- `internal/i18n`: presentation translation of explanations and errors; language negotiation and context.
+- `cmd/amlens`: dependency wiring, CLI and server lifecycle.
 
-Направление зависимостей: presentation/infrastructure → application → domain. Domain использует decimal только как числовой тип; HTTP, файлы и AI ему неизвестны. Application зависит от интерфейсов, не импортирует адаптеры.
+Dependencies point from presentation/infrastructure to application to domain. Domain uses decimal as a numerical type and knows nothing about HTTP, files or AI. Application depends on interfaces rather than concrete adapters.
 
-## Аналитика
+## Analysis
 
-Связи и денежные суммы берутся из направленных edges. Число отдельных операций берётся из transactions, включая повторные строки; их суммы повторно к обороту не прибавляются. Изолированные узлы сохраняются. Соседние seed считаются уникально в объединении входящих и исходящих соседей, исключая сам узел.
+Connections and monetary totals come from directed edges. Individual operation counts come from transactions, including duplicate rows; transaction amounts are not added to edge volume a second time. Isolated nodes are preserved. Seed neighbors are counted uniquely across incoming and outgoing connections, excluding the node itself.
 
-Суммы: десятичное представление прочитанного float64, дальнейшее сложение без бинарного округления. Исходную потерю точности float64 восстановить нельзя. HTTP отдаёт суммы числами, идентификаторы — точными строками int64. Обороты за пределами float64 отклоняются до публикации снимка.
+Amounts use the decimal representation of the input float64 and decimal addition thereafter. Precision already lost in the source float64 cannot be recovered. HTTP returns amounts as numbers and identifiers as exact int64 strings. Volume outside float64 range is rejected before a snapshot is published.
 
-Роли применяются в порядке первого совпадения. I/O — степени, S — соседние seed, Vin/Vout — суммы, r=Vout/Vin (только не-seed с Vin>0).
+Roles use the first matching rule. I/O are degrees, S is seed-neighbor count, Vin/Vout are amounts, and r=Vout/Vin applies only to non-seeds with Vin>0.
 
-| Роль | Правило | Балл |
+| Role | Rule | Score |
 |---|---|---|
 | coordinator | I≥3, O≥3, S≥2 | min(1, 0.6+0.05·min(I+O−6,8)) |
-| consolidator | I≥3, Vin≥100000, r≤0.6; для seed только I и Vin | min(1, 0.65+0.05·min(I−3,7)) |
+| consolidator | I≥3, Vin≥100000, r≤0.6; for seeds only I and Vin apply | min(1, 0.65+0.05·min(I−3,7)) |
 | distributor | O≥5, Vout≥100000 | min(1, 0.65+0.05·min(O−5,7)) |
 | transit | I>0, O>0, r∈[0.8,1.2] | 0.9−abs(r−1) |
 | terminal | I>0, O=0, depth<4 | min(0.85, 0.55+0.05·min(I,6)) |
-| peripheral | остальные | 0.5 |
+| peripheral | otherwise | 0.5 |
 
-Порог 100000 — эвристика роли, не ограничение входных сумм. Баллы не являются вероятностями.
+100000 is a role heuristic, not a minimum input amount. Scores are not probabilities.
 
-Приоритет: сумма нормированных log1p признаков с весами 0.35 для числа связей, 0.25 для числа операций, 0.25 для оборота Vin+Vout, 0.15 для соседних seed. Нормирование по максимуму текущего набора; при нулевом максимуме вклад равен нулю. Топ-20 сортируется по убыванию приоритета, при равенстве — по gid.
+Priority combines normalized log1p features: 0.35 for connection count, 0.25 for operation count, 0.25 for Vin+Vout, 0.15 for seed neighbors. Each feature is normalized by its maximum in the current dataset; a zero maximum contributes zero. The top 20 is sorted by descending priority, then gid.
 
-Кластеры: неориентированная проекция, суммы встречных рёбер объединяются, петли учитываются, веса нормированы на максимальный вес. Louvain последовательно улучшает модульность и укрупняет сообщества. Порядок входа стабилизирован, seed=42. Каждый изолированный узел — отдельный кластер; при нулевых весах узлы не объединяются. ID кластеров — порядок минимального gid. Из-за другой реализации обхода разбиение может отличаться от NetworkX даже при том же seed.
+Clustering uses an undirected projection: opposite-direction amounts are combined, self-loops are retained, and weights are normalized by the maximum edge weight. Louvain improves modularity and aggregates communities. Input order is stable and seed=42. Each isolated node forms its own cluster; zero-weight edges do not merge nodes. Cluster IDs follow the minimum gid order. Results can differ from NetworkX because the implementation and traversal differ.
 
-CSV-схемы:
+CSV schemas:
+
 - nodes_roles.csv: gid, role, role_score, cluster_id, priority_score, evidence.
 - clusters.csv: cluster_id, n_nodes, n_seed, sum_kzt_internal, top_gids, hypothesis.
 - top_nodes.csv: rank, gid, role, priority_score, why.
 
-Внутренний оборот кластера считается по исходным направленным рёбрам ровно один раз. top_gids — JSON-массив целых в CSV и строк в HTTP.
+Internal cluster volume counts each original directed edge once. `top_gids` is a JSON array of integers in CSV and of strings in HTTP.
 
-## Отличия от старого Python backend
+## Persistence and differences from the Python prototype
 
-Сохранены HTTP-поля и маршруты, роли, формулы приоритетов, CSV-схемы, точность gid, ограничения контекста AI и поведение при неудачной/параллельной загрузке.
+HTTP fields and routes, role rules, priority formulas, CSV schemas, exact gid values, AI context limits and failed/concurrent import behavior have been preserved.
 
-Убраны условия конкретной выборки: июль 2026, минимум 5000 KZT и утверждение о внутрибанковском охвате. Принимаются любые календарные даты 0001–9999 и конечные неотрицательные суммы. Карточка сообщает COVERAGE_UNKNOWN вместо неподтверждённых INTRABANK_ONLY и AMOUNT_THRESHOLD.
+Dataset-specific restrictions were removed: July 2026, minimum 5000 KZT and an assertion of within-bank coverage. Calendar years 0001–9999 and finite non-negative amounts are accepted. Cards report COVERAGE_UNKNOWN instead of unsupported INTRABANK_ONLY and AMOUNT_THRESHOLD assumptions.
 
-При serve снимки и три CSV сохраняются в SQLite; активная версия восстанавливается после перезапуска. Запись и выбор версии выполняются транзакционно, ошибка сохранения не заменяет текущий результат. История показывает последние 100 записей; записи автоматически не удаляются. Временные входы удаляются и при успехе, и при ошибке. Swagger /docs не генерируется; контракт описан в Markdown. CSV-вход не поддерживается.
+`serve` stores snapshots and three CSV exports in SQLite and restores the active version on restart. Writing and activation are transactional; failed storage preserves the current result. History lists the latest 100 entries without automatically deleting records. Temporary inputs are removed on success and failure. Swagger `/docs` is not generated; the contract is maintained in Markdown. CSV input is unsupported.
+
+## Languages
+
+HTTP defaults to English and supports Russian and Kazakh through `Accept-Language`. Presentation translation covers API errors, explanatory fields, references and CSV narratives while preserving technical codes, exact identifiers and numeric tokens. Existing stored Russian explanations remain readable without migrating or rewriting snapshots. The CLI uses English help and status text; CLI-generated analytical files retain the canonical source explanations. Use HTTP export to select a language for those files.
 
 ## OpenAI
 
-Окружение: OPENAI_API_KEY, OPENAI_MODEL, OPENAI_BASE_URL (по умолчанию https://api.openai.com/v1), OPENAI_TIMEOUT_SECONDS (1–120, по умолчанию 30). Адрес только HTTPS без логина, пароля, query и fragment; перенаправления отключены. Задавайте только доверенный адрес: ключ отправляется на него.
+Settings: `OPENAI_API_KEY`, `OPENAI_MODEL`, `OPENAI_BASE_URL` (default https://api.openai.com/v1), `OPENAI_TIMEOUT_SECONDS` (1–120, default 30). The URL must use HTTPS without credentials, query or fragment. Redirects are disabled. Use a trusted endpoint because the key is sent there.
 
-Один вопрос — один POST /responses, без повторов, store=false, строгая JSON-схема, до 2500 выходных токенов и 128 KiB ответа. Таймаут покрывает всё обращение. Передаются до 5 выбранных узлов, до 5 соседей, до 10 рёбер, максимум 32 KiB контекста; сначала крупнейшее исходящее ребро каждого выбранного узла.
+Each question makes one POST to `/responses`, without retries, with `store=false`, a strict JSON schema, up to 2500 output tokens and a 128 KiB response limit. The timeout covers the entire call. Context contains up to five selected nodes, five neighbors and ten edges, at most 32 KiB; each selected node's largest outgoing edge is considered first. Server instructions select English, Russian or Kazakh using the request locale.
 
-Неверные, повторные и неизвестные ссылки, упоминания неподтверждённых gid, отказ/ошибка провайдера дают 503 AI_UNAVAILABLE без содержимого ошибки или ключа. Версия проверяется до и после вызова. Факты для references формирует сервер. Проверка ссылок не доказывает истинность текста.
+Invalid, duplicate or unknown references, unsupported gid mentions, refusals and provider errors become 503 AI_UNAVAILABLE without exposing provider errors or keys. The analysis version is checked before and after the call. Reference facts are generated by the server. Reference validation does not establish the truth of generated prose.
 
-Формат сверен с [Responses API](https://developers.openai.com/api/docs/guides/migrate-to-responses) и [Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs). Тесты используют подменный HTTP transport; внешние вызовы не выполняются.
+See [Responses API](https://developers.openai.com/api/docs/guides/migrate-to-responses) and [Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs). Tests replace the HTTP transport and make no external model calls.
 
-## Эксплуатация
+## Operations
 
-Локальный сервер без авторизации; адрес по умолчанию 127.0.0.1:8000. CORS_ORIGINS — список origins через запятую, по умолчанию пустой; Vite использует локальный proxy. ANALYSIS_STORAGE_DIR — каталог временных загрузок, по умолчанию out/api.
+The unauthenticated local server defaults to 127.0.0.1:8000. `CORS_ORIGINS` is a comma-separated list, empty by default; Vite uses a local proxy. `ANALYSIS_STORAGE_DIR` defaults to `out/api` for temporary uploads.
 
-ANALYSIS_DATABASE — путь SQLite, по умолчанию out/analyses.db (для serve --demo: out/demo.db). Ошибка чтения базы останавливает запуск без сброса данных. Версия схемы — PRAGMA user_version=1, формат снимка — Gob с точными int64/decimal и внутренними полями доказательств. Несовместимая будущая версия требует явной миграции. Демонстрационная база помечена отдельно и не открывается в обычном режиме; приватная база не открывается в демо.
+`ANALYSIS_DATABASE` defaults to `out/analyses.db` (`out/demo.db` for `serve --demo`). Database read errors stop startup without deleting data. Schema version is `PRAGMA user_version=1`; snapshots use Gob with exact int64/decimal and internal evidence fields. Incompatible future versions require an explicit migration. Demo databases are marked and cannot be opened in regular mode; private databases cannot be opened as demos.
 
-Хранилище рассчитано на один процесс API. Данные исходных Parquet в истории не сохраняются; сохраняются рассчитанные показатели, связи, объяснения и экспорты. Это тоже финансовые данные — SQLite нельзя публиковать.
+Storage supports one API process. History keeps computed metrics, connections, explanations and exports, not source Parquet files. These are still financial data; do not publish SQLite files.
 
-Не загружайте данные хакатона. Проверяйте подготовку публикации из корня: node scripts/check-publication.mjs. Все тестовые записи синтетические, Parquet создаются во временных каталогах.
+Do not upload hackathon data. Run `node scripts/check-publication.mjs` from the root before publishing. All test records are synthetic and Parquet fixtures are created in temporary directories.
