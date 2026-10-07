@@ -1,0 +1,26 @@
+{
+	http_port 8080
+	https_port 8443
+}
+{$DOMAIN} {
+	encode zstd gzip
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy same-origin
+		X-Frame-Options DENY
+	}
+	handle /api/* {
+		reverse_proxy backend:8000
+	}
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+	}
+}
+# Internal container health probe; not the public site.
+:8080 {
+	handle /healthz {
+		respond "ok" 200
+	}
+}
