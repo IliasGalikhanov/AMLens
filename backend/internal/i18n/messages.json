@@ -1,0 +1,530 @@
+{
+  "Использование: amlens serve|validate|analyze|template|demo [параметры]": {
+    "en": "Usage: amlens serve|validate|analyze|template|demo [options]",
+    "kk": "Қолданылуы: amlens serve|validate|analyze|template|demo [параметрлер]"
+  },
+  "Неизвестная команда": {
+    "en": "Unknown command",
+    "kk": "Белгісіз пәрмен"
+  },
+  "Явный путь к локальному .env": {
+    "en": "Explicit path to a local .env file",
+    "kk": "Жергілікті .env файлының нақты жолы"
+  },
+  "Адрес HTTP": {
+    "en": "HTTP address",
+    "kk": "HTTP мекенжайы"
+  },
+  "Синтетические данные, только чтение, без ИИ": {
+    "en": "Read-only synthetic data, with AI disabled",
+    "kk": "ЖИ өшірілген, тек оқуға арналған синтетикалық деректер"
+  },
+  "Каталог трёх Parquet-файлов": {
+    "en": "Directory containing three Parquet files",
+    "kk": "Үш Parquet файлы бар каталог"
+  },
+  "Новый каталог CSV": {
+    "en": "New CSV output directory",
+    "kk": "CSV нәтижелерінің жаңа каталогы"
+  },
+  "Каталог пустых Parquet-шаблонов": {
+    "en": "Directory for empty Parquet templates",
+    "kk": "Бос Parquet үлгілерінің каталогы"
+  },
+  "Лишние аргументы": {
+    "en": "Unexpected arguments",
+    "kk": "Артық аргументтер"
+  },
+  "Созданы три Parquet-файла (": {
+    "en": "Created three Parquet files (",
+    "kk": "Үш Parquet файлы жасалды ("
+  },
+  "Статус: OK\nУзлов: %d\nРёбер: %d\nТранзакций: %d\nSeed: %d\n": {
+    "en": "Status: OK\nNodes: %d\nEdges: %d\nTransactions: %d\nSeeds: %d\n",
+    "kk": "Күйі: OK\nТүйіндер: %d\nБайланыстар: %d\nТранзакциялар: %d\nБастапқы түйіндер: %d\n"
+  },
+  "Статус: OK\nУзлов: %d\nРёбер: %d\nТранзакций: %d\nКластеров: %d\nCSV: %s\nВремя: %s\n": {
+    "en": "Status: OK\nNodes: %d\nEdges: %d\nTransactions: %d\nClusters: %d\nCSV: %s\nTime: %s\n",
+    "kk": "Күйі: OK\nТүйіндер: %d\nБайланыстар: %d\nТранзакциялар: %d\nКластерлер: %d\nCSV: %s\nУақыт: %s\n"
+  },
+  "Не удалось открыть хранилище:": {
+    "en": "Could not open storage:",
+    "kk": "Сақтау орнын ашу мүмкін болмады:"
+  },
+  "Не удалось восстановить анализ:": {
+    "en": "Could not restore analysis:",
+    "kk": "Талдауды қалпына келтіру мүмкін болмады:"
+  },
+  "AMLens API: http://%s\nAI настроен: %t\n": {
+    "en": "AMLens API: http://%s\nAI configured: %t\n",
+    "kk": "AMLens API: http://%s\nЖИ бапталған: %t\n"
+  },
+  "Не удалось запустить HTTP-сервер:": {
+    "en": "Could not start HTTP server:",
+    "kk": "HTTP серверін іске қосу мүмкін болмады:"
+  },
+  "На сервере уже выполняется расчёт": {
+    "en": "An analysis is already running on the server",
+    "kk": "Серверде талдау орындалып жатыр"
+  },
+  "Сохранённый анализ не найден": {
+    "en": "Saved analysis not found",
+    "kk": "Сақталған талдау табылмады"
+  },
+  "Анализ изменился; обновите граф": {
+    "en": "Analysis changed; refresh the graph",
+    "kk": "Талдау өзгерді; графты жаңартыңыз"
+  },
+  "Введите вопрос до 2000 символов и выберите 1–5 разных узлов": {
+    "en": "Enter a question of up to 2000 characters and select 1–5 distinct nodes",
+    "kk": "2000 таңбаға дейін сұрақ енгізіп, 1–5 әртүрлі түйінді таңдаңыз"
+  },
+  "Выбранный gid отсутствует в анализе или повторяется": {
+    "en": "A selected gid is missing from the analysis or duplicated",
+    "kk": "Таңдалған gid талдауда жоқ немесе қайталанған"
+  },
+  "AI не настроен: задайте ключ и модель OpenAI": {
+    "en": "AI is not configured: set the OpenAI key and model",
+    "kk": "ЖИ бапталмаған: OpenAI кілті мен моделін көрсетіңіз"
+  },
+  "Анализ изменился во время ответа; обновите граф": {
+    "en": "Analysis changed while generating the answer; refresh the graph",
+    "kk": "Жауап дайындалғанда талдау өзгерді; графты жаңартыңыз"
+  },
+  "Не удалось получить корректный ответ AI": {
+    "en": "Could not obtain a valid AI answer",
+    "kk": "ЖИ-ден жарамды жауап алу мүмкін болмады"
+  },
+  "Связи усечены: показано %d из %d близких рёбер; это не полный список контрагентов": {
+    "en": "Connections are truncated: showing %d of %d nearby edges; this is not a complete counterparty list",
+    "kk": "Байланыстар шектелген: жақын %d байланыс көрсетілген, барлығы %d; бұл контрагенттердің толық тізімі емес"
+  },
+  "Проверка ссылок не гарантирует истинность всего текста модели; сверяйте объяснение с фактами и карточками": {
+    "en": "Reference validation does not guarantee that all model statements are true; compare the explanation with facts and client details",
+    "kk": "Сілтемелерді тексеру модельдің барлық тұжырымы дұрыс екеніне кепілдік бермейді; түсіндірмені фактілермен және клиент карточкаларымен салыстырыңыз"
+  },
+  "Контекст слишком велик: выберите меньше узлов": {
+    "en": "Context is too large: select fewer nodes",
+    "kk": "Контекст тым үлкен: азырақ түйін таңдаңыз"
+  },
+  "не входит": {
+    "en": "outside the top list",
+    "kk": "үздік тізімге кірмейді"
+  },
+  "Роль: ": {
+    "en": "Role: ",
+    "kk": "Рөл: "
+  },
+  "Оценка роли: %g": {
+    "en": "Role score: %g",
+    "kk": "Рөл бағасы: %g"
+  },
+  "Входящих контрагентов: %d": {
+    "en": "Incoming counterparties: %d",
+    "kk": "Кіріс контрагенттері: %d"
+  },
+  "Исходящих контрагентов: %d": {
+    "en": "Outgoing counterparties: %d",
+    "kk": "Шығыс контрагенттері: %d"
+  },
+  "Входящий оборот: ": {
+    "en": "Incoming volume: ",
+    "kk": "Кіріс көлемі: "
+  },
+  "Исходящий оборот: ": {
+    "en": "Outgoing volume: ",
+    "kk": "Шығыс көлемі: "
+  },
+  "Приоритет: %g": {
+    "en": "Priority: %g",
+    "kk": "Басымдық: %g"
+  },
+  "Место в top-20: ": {
+    "en": "Position in top-20: ",
+    "kk": "Үздік 20-дағы орны: "
+  },
+  "Глубина: %d; seed: %t": {
+    "en": "Depth: %d; seed: %t",
+    "kk": "Тереңдік: %d; seed: %t"
+  },
+  "Наблюдаемая связь %d → %d: %s KZT; операций: %d": {
+    "en": "Observed connection %d → %d: %s KZT; transactions: %d",
+    "kk": "Бақыланған байланыс %d → %d: %s KZT; транзакциялар: %d"
+  },
+  "Сначала загрузите три файла и выполните анализ": {
+    "en": "Upload three files and run an analysis first",
+    "kk": "Алдымен үш файлды жүктеп, талдауды орындаңыз"
+  },
+  "Узел не найден в текущем анализе": {
+    "en": "Node not found in the current analysis",
+    "kk": "Түйін ағымдағы талдаудан табылмады"
+  },
+  "Файл экспорта не найден": {
+    "en": "Export file not found",
+    "kk": "Экспорт файлы табылмады"
+  },
+  "файл окружения недоступен": {
+    "en": "environment file is unavailable",
+    "kk": "орта айнымалыларының файлы қолжетімсіз"
+  },
+  "файл окружения: неверный формат строки %d": {
+    "en": "environment file: invalid format on line %d",
+    "kk": "орта айнымалыларының файлы: %d жолының пішімі қате"
+  },
+  "файл окружения: неверные кавычки в строке %d": {
+    "en": "environment file: invalid quotes on line %d",
+    "kk": "орта айнымалыларының файлы: %d жолындағы тырнақшалар қате"
+  },
+  "не удалось прочитать файл окружения": {
+    "en": "could not read the environment file",
+    "kk": "орта айнымалыларының файлын оқу мүмкін болмады"
+  },
+  "не удалось задать переменную окружения": {
+    "en": "could not set the environment variable",
+    "kk": "орта айнымалысын орнату мүмкін болмады"
+  },
+  "координации: входов=%d, выходов=%d, seed=%d": {
+    "en": "coordination: incoming=%d, outgoing=%d, seeds=%d",
+    "kk": "үйлестіру: кіріс=%d, шығыс=%d, seed=%d"
+  },
+  "сбора: плательщиков=%d, вход=%.6g KZT": {
+    "en": "consolidation: payers=%d, inflow=%.6g KZT",
+    "kk": "шоғырландыру: төлеушілер=%d, кіріс=%.6g KZT"
+  },
+  "распределения: получателей=%d, выход=%.6g KZT": {
+    "en": "distribution: recipients=%d, outflow=%.6g KZT",
+    "kk": "бөлу: алушылар=%d, шығыс=%.6g KZT"
+  },
+  "транзита: входов=%d, выходов=%d, out/in=%.1f%%": {
+    "en": "transit: incoming=%d, outgoing=%d, out/in=%.1f%%",
+    "kk": "транзит: кіріс=%d, шығыс=%d, out/in=%.1f%%"
+  },
+  "получателя: вход=%.6g KZT, плательщиков=%d, выходов=0": {
+    "en": "recipient: inflow=%.6g KZT, payers=%d, outgoing=0",
+    "kk": "алушы: кіріс=%.6g KZT, төлеушілер=%d, шығыс=0"
+  },
+  "явной роли не выявлены: входов=%d, выходов=%d": {
+    "en": "no clear role: incoming=%d, outgoing=%d",
+    "kk": "айқын рөл анықталмады: кіріс=%d, шығыс=%d"
+  },
+  "; полный баланс неизвестен": {
+    "en": "; full account balance is unknown",
+    "kk": "; шоттың толық қалдығы белгісіз"
+  },
+  "; depth=4: граница наблюдения, не доказанный сток": {
+    "en": "; depth=4: observation boundary, not a confirmed endpoint",
+    "kk": "; depth=4: бақылау шекарасы, расталған соңғы нүкте емес"
+  },
+  "; seed: полнота входящих неизвестна, out/in не трактуется": {
+    "en": "; seed: incoming coverage is unknown, out/in is not interpreted",
+    "kk": "; seed: кірістің толықтығы белгісіз, out/in түсіндірілмейді"
+  },
+  "Признаки ": {
+    "en": "Indicators of ",
+    "kk": "Белгілер: "
+  },
+  "суммарный оборот превышает допустимый диапазон": {
+    "en": "total volume exceeds the supported range",
+    "kk": "жалпы көлем рұқсат етілген ауқымнан асады"
+  },
+  "Связей=%d (%.1f%% балла); операций=%d (%.1f%%); оборот=%.6g KZT (%.1f%%); соседей seed=%d (%.1f%%). Приоритет проверки, не вывод о виновности.": {
+    "en": "Connections=%d (%.1f%% of score); transactions=%d (%.1f%%); volume=%.6g KZT (%.1f%%); seed neighbors=%d (%.1f%%). Review priority, not a finding of wrongdoing.",
+    "kk": "Байланыстар=%d (бағаның %.1f%%); транзакциялар=%d (%.1f%%); көлем=%.6g KZT (%.1f%%); seed көршілері=%d (%.1f%%). Бұл тексеру басымдығы, заң бұзушылық туралы қорытынды емес."
+  },
+  "пустой кластер": {
+    "en": "empty cluster",
+    "kk": "бос кластер"
+  },
+  "некорректное разбиение графа": {
+    "en": "invalid graph partition",
+    "kk": "графтың бөлінуі қате"
+  },
+  "разбиение не покрывает все узлы": {
+    "en": "partition does not cover every node",
+    "kk": "бөліну барлық түйінді қамтымайды"
+  },
+  "Изолированный узел: наблюдаемых связей=0; назначение группы не установлено": {
+    "en": "Isolated node: observed connections=0; the group's purpose is unknown",
+    "kk": "Оқшауланған түйін: бақыланған байланыстар=0; топтың мақсаты анықталмаған"
+  },
+  "Группа наблюдаемых потоков: узлов=%d, seed=%d; признаки сбора у %d, распределения у %d, координации у %d; внутренний оборот=%.6g KZT. Гипотеза для проверки, не доказательство общей деятельности": {
+    "en": "Observed flow group: nodes=%d, seeds=%d; consolidation indicators in %d, distribution in %d, coordination in %d; internal volume=%.6g KZT. A hypothesis to investigate, not proof of joint activity",
+    "kk": "Бақыланған ағындар тобы: түйіндер=%d, seed=%d; шоғырландыру белгілері %d, бөлу %d, үйлестіру %d қатысушыда; ішкі көлем=%.6g KZT. Бұл тексеруге арналған болжам, бірлескен қызметтің дәлелі емес"
+  },
+  "ожидается конечная неотрицательная сумма": {
+    "en": "expected a finite non-negative amount",
+    "kk": "шекті теріс емес сома қажет"
+  },
+  "сумма превышает диапазон HTTP JSON": {
+    "en": "amount exceeds the HTTP JSON range",
+    "kk": "сома HTTP JSON ауқымынан асады"
+  },
+  "%s.parquet: строка %d, поле %s: %s": {
+    "en": "%s.parquet: row %d, field %s: %s",
+    "kk": "%s.parquet: жол %d, өріс %s: %s"
+  },
+  "повторный идентификатор": {
+    "en": "duplicate identifier",
+    "kk": "қайталанған идентификатор"
+  },
+  "допустимы значения 0–4": {
+    "en": "allowed values: 0–4",
+    "kk": "рұқсат етілген мәндер: 0–4"
+  },
+  "seed должен соответствовать depth=0": {
+    "en": "seed must correspond to depth=0",
+    "kk": "seed мәні depth=0 шартына сәйкес болуы тиіс"
+  },
+  "узел отсутствует в nodes": {
+    "en": "node is missing from nodes",
+    "kk": "түйін nodes жиынында жоқ"
+  },
+  "повторная направленная пара": {
+    "en": "duplicate directed pair",
+    "kk": "қайталанған бағытталған жұп"
+  },
+  "недопустимая сумма": {
+    "en": "invalid amount",
+    "kk": "жарамсыз сома"
+  },
+  "ожидается положительное целое": {
+    "en": "expected a positive integer",
+    "kk": "оң бүтін сан қажет"
+  },
+  "допустимы значения 1–4": {
+    "en": "allowed values: 1–4",
+    "kk": "рұқсат етілген мәндер: 1–4"
+  },
+  "пара отсутствует в edges": {
+    "en": "pair is missing from edges",
+    "kk": "жұп edges жиынында жоқ"
+  },
+  "ожидается календарная дата 0001–9999": {
+    "en": "expected a calendar date in years 0001–9999",
+    "kk": "0001–9999 жылдар аралығындағы күнтізбелік күн қажет"
+  },
+  "Выводы относятся только к загруженным переводам; полнота выборки и полный баланс неизвестны": {
+    "en": "Conclusions apply only to uploaded transfers; dataset completeness and full account balances are unknown",
+    "kk": "Қорытындылар тек жүктелген аударымдарға қатысты; жиынның толықтығы мен шоттардың толық қалдықтары белгісіз"
+  },
+  "Роль и оценки — гипотезы для проверки, не вероятность и не вывод о виновности": {
+    "en": "Roles and scores are hypotheses to investigate, not probabilities or findings of wrongdoing",
+    "kk": "Рөлдер мен бағалар — тексеруге арналған болжамдар, ықтималдықтар немесе заң бұзушылық туралы қорытындылар емес"
+  },
+  "Для seed полнота входящих неизвестна; отношение out/in не трактуется": {
+    "en": "Incoming coverage for seeds is unknown; the out/in ratio is not interpreted",
+    "kk": "Бастапқы түйіндердің кіріс толықтығы белгісіз; out/in қатынасы түсіндірілмейді"
+  },
+  "depth=4 и отсутствие исходящих — граница наблюдения, не доказательство удержания": {
+    "en": "depth=4 with no outgoing edges is an observation boundary, not evidence of funds being retained",
+    "kk": "depth=4 кезінде шығыс байланыстарының болмауы — бақылау шекарасы, қаражатты ұстап қалудың дәлелі емес"
+  },
+  "Узел изолирован в выборке; отсутствие связей не доказывает отсутствие операций": {
+    "en": "This node is isolated in the dataset; missing links do not prove that no transactions occurred",
+    "kk": "Бұл түйін жиында оқшауланған; байланыстардың болмауы операциялар болмағанын дәлелдемейді"
+  },
+  "Исходящие за границей обхода неизвестны": {
+    "en": "Outgoing transfers beyond the traversal boundary are unknown",
+    "kk": "Зерттеу шекарасынан тыс шығыс аударымдары белгісіз"
+  },
+  "Запросить исходящие переводы за пределами обхода за тот же период": {
+    "en": "Request outgoing transfers beyond the traversal boundary for the same period",
+    "kk": "Сол кезеңдегі зерттеу шекарасынан тыс шығыс аударымдарын сұрау"
+  },
+  "Проверить продолжение движения средств": {
+    "en": "Check whether funds continue to move",
+    "kk": "Қаражат қозғалысының жалғасуын тексеру"
+  },
+  "Полнота входящих seed неизвестна; out/in не является балансом": {
+    "en": "Incoming seed coverage is unknown; out/in does not represent an account balance",
+    "kk": "Seed кірісінің толықтығы белгісіз; out/in шот қалдығын білдірмейді"
+  },
+  "Запросить полную историю входящих за период выборки": {
+    "en": "Request the full incoming transfer history for the dataset period",
+    "kk": "Деректер кезеңіндегі кіріс аударымдарының толық тарихын сұрау"
+  },
+  "Проверить источники поступлений": {
+    "en": "Check the sources of incoming funds",
+    "kk": "Қаражат түсімдерінің көздерін тексеру"
+  },
+  "Отсутствие связей не доказывает отсутствие деятельности": {
+    "en": "Missing connections do not prove an absence of activity",
+    "kk": "Байланыстардың болмауы қызметтің жоқтығын дәлелдемейді"
+  },
+  "Проверить полноту выгрузки и условия отбора": {
+    "en": "Check export completeness and selection criteria",
+    "kk": "Деректердің толықтығын және іріктеу шарттарын тексеру"
+  },
+  "Выяснить причину отсутствия наблюдаемых связей": {
+    "en": "Establish why no connections were observed",
+    "kk": "Байланыстардың байқалмау себебін анықтау"
+  },
+  "Выход больше наблюдаемого входа; возможны начальный остаток или отсутствующие поступления": {
+    "en": "Outflow exceeds observed inflow; an opening balance or missing inflows may explain it",
+    "kk": "Шығыс бақыланған кірістен асады; бастапқы қалдық немесе қамтылмаған түсімдер болуы мүмкін"
+  },
+  "Запросить остатки и полную выписку": {
+    "en": "Request account balances and a full statement",
+    "kk": "Шот қалдықтары мен толық үзінді көшірмені сұрау"
+  },
+  "Проверить источники покрытия исходящего оборота": {
+    "en": "Check the sources funding the outgoing volume",
+    "kk": "Шығыс көлемін қаржыландыру көздерін тексеру"
+  },
+  "Банковский охват и пороги отбора не заданы входными файлами": {
+    "en": "Input files do not specify bank coverage or selection thresholds",
+    "kk": "Кіріс файлдарында банктердің қамтылуы мен іріктеу шектері көрсетілмеген"
+  },
+  "В схеме нет метаданных об охвате и фильтрах": {
+    "en": "The schema contains no coverage or filter metadata",
+    "kk": "Схемада қамту мен сүзгілер туралы метадеректер жоқ"
+  },
+  "Запросить описание источника, охвата банков и фильтров выгрузки": {
+    "en": "Request the data source description, bank coverage and export filters",
+    "kk": "Дереккөз сипаттамасын, банктердің қамтылуын және деректер сүзгілерін сұрау"
+  },
+  "Установить условия наблюдения без предположений о пропущенных переводах": {
+    "en": "Establish observation conditions without assuming missing transfers",
+    "kk": "Қамтылмаған аударымдар туралы жорамал жасамай, бақылау шарттарын анықтау"
+  },
+  "Операции за пределами выгрузки неизвестны": {
+    "en": "Transactions outside the exported dataset are unknown",
+    "kk": "Деректер жиынынан тыс операциялар белгісіз"
+  },
+  "Даты относятся только к загруженным транзакциям": {
+    "en": "Dates cover only uploaded transactions",
+    "kk": "Күндер тек жүктелген транзакцияларға қатысты"
+  },
+  "Запросить границы полного периода и выписки за соседние периоды": {
+    "en": "Request the full period boundaries and statements for adjacent periods",
+    "kk": "Толық кезең шекаралары мен көршілес кезеңдердің үзінді көшірмелерін сұрау"
+  },
+  "Проверить устойчивость гипотез": {
+    "en": "Check whether the hypotheses hold across periods",
+    "kk": "Болжамдардың кезеңдер бойынша тұрақтылығын тексеру"
+  },
+  "Переводы не определяют полный баланс счёта": {
+    "en": "Transfers do not determine the full account balance",
+    "kk": "Аударымдар шоттың толық қалдығын анықтамайды"
+  },
+  "В схеме нет остатков": {
+    "en": "The schema contains no account balances",
+    "kk": "Схемада шот қалдықтары жоқ"
+  },
+  "Запросить остатки на начало и конец периода": {
+    "en": "Request opening and closing balances",
+    "kk": "Кезең басындағы және соңындағы қалдықтарды сұрау"
+  },
+  "Проверить гипотезу об удержании средств": {
+    "en": "Check the hypothesis of funds being retained",
+    "kk": "Қаражатты ұстап қалу болжамын тексеру"
+  },
+  "каталог результатов уже существует или недоступен; укажите новый --output-dir": {
+    "en": "output directory already exists or is unavailable; choose a new --output-dir",
+    "kk": "нәтиже каталогы бар немесе қолжетімсіз; жаңа --output-dir таңдаңыз"
+  },
+  "%s: файл уже существует или недоступен": {
+    "en": "%s: file already exists or is unavailable",
+    "kk": "%s: файл бар немесе қолжетімсіз"
+  },
+  "поле sum_kzt: %w": {
+    "en": "field sum_kzt: %w",
+    "kk": "sum_kzt өрісі: %w"
+  },
+  "%s.parquet: повреждённый Parquet": {
+    "en": "%s.parquet: corrupt Parquet",
+    "kk": "%s.parquet: Parquet бүлінген"
+  },
+  "%s.parquet: файл недоступен": {
+    "en": "%s.parquet: file unavailable",
+    "kk": "%s.parquet: файл қолжетімсіз"
+  },
+  "%s.parquet: превышен лимит 25 MiB": {
+    "en": "%s.parquet: 25 MiB limit exceeded",
+    "kk": "%s.parquet: 25 МиБ шегінен асты"
+  },
+  "%s.parquet: не удалось прочитать Parquet": {
+    "en": "%s.parquet: could not read Parquet",
+    "kk": "%s.parquet: Parquet оқу мүмкін болмады"
+  },
+  "%s.parquet: превышен лимит строк (%d)": {
+    "en": "%s.parquet: row limit exceeded (%d)",
+    "kk": "%s.parquet: жолдар санының шегінен асты (%d)"
+  },
+  "%s.parquet: превышен лимит распакованных данных 256 MiB": {
+    "en": "%s.parquet: 256 MiB decoded data limit exceeded",
+    "kk": "%s.parquet: ашылған деректердің 256 МиБ шегінен асты"
+  },
+  "%s.parquet: поле %s: ожидается одна скалярная колонка %s": {
+    "en": "%s.parquet: field %s: expected one scalar column of type %s",
+    "kk": "%s.parquet: өріс %s: %s түріндегі бір скаляр баған қажет"
+  },
+  "%s.parquet: строка %d, поле %s: пропуск или повтор значения": {
+    "en": "%s.parquet: row %d, field %s: missing or repeated value",
+    "kk": "%s.parquet: жол %d, өріс %s: мән жоқ немесе қайталанған"
+  },
+  "%s.parquet: строка %d: %w": {
+    "en": "%s.parquet: row %d: %w",
+    "kk": "%s.parquet: жол %d: %w"
+  },
+  "%s.parquet: ошибка чтения строк": {
+    "en": "%s.parquet: failed to read rows",
+    "kk": "%s.parquet: жолдарды оқу қатесі"
+  },
+  "%s.parquet: чтение не продвигается": {
+    "en": "%s.parquet: read made no progress",
+    "kk": "%s.parquet: оқу ілгерілемейді"
+  },
+  "%s.parquet: число строк не совпадает с метаданными": {
+    "en": "%s.parquet: row count differs from metadata",
+    "kk": "%s.parquet: жолдар саны метадеректерге сәйкес емес"
+  },
+  "Нужны ровно три файловых поля nodes, edges, transactions с расширением .parquet": {
+    "en": "Exactly three file fields are required: nodes, edges, transactions, with .parquet extensions",
+    "kk": ".parquet кеңейтімі бар дәл үш файл өрісі қажет: nodes, edges, transactions"
+  },
+  "Размер файла превышает 25 MiB": {
+    "en": "File size exceeds 25 MiB",
+    "kk": "Файл өлшемі 25 МиБ-тан асады"
+  },
+  "Загрузите nodes.parquet, edges.parquet и transactions.parquet": {
+    "en": "Upload nodes.parquet, edges.parquet and transactions.parquet",
+    "kk": "nodes.parquet, edges.parquet және transactions.parquet файлдарын жүктеңіз"
+  },
+  "Размер запроса превышает 76 MiB": {
+    "en": "Request size exceeds 76 MiB",
+    "kk": "Сұрау өлшемі 76 МиБ-тан асады"
+  },
+  "Не удалось прочитать multipart-форму": {
+    "en": "Could not read the multipart form",
+    "kk": "Multipart пішінін оқу мүмкін болмады"
+  },
+  "Маршрут не найден": {
+    "en": "Route not found",
+    "kk": "Маршрут табылмады"
+  },
+  "Не удалось обработать запрос": {
+    "en": "Could not process the request",
+    "kk": "Сұрауды өңдеу мүмкін болмады"
+  },
+  "Демонстрация доступна только для просмотра синтетических данных": {
+    "en": "The demo only allows viewing synthetic data",
+    "kk": "Демо тек синтетикалық деректерді қарауға арналған"
+  },
+  "Не удалось подготовить ответ": {
+    "en": "Could not prepare the response",
+    "kk": "Жауапты дайындау мүмкін болмады"
+  },
+  "Ожидается multipart/form-data с тремя Parquet-файлами": {
+    "en": "Expected multipart/form-data with three Parquet files",
+    "kk": "Үш Parquet файлы бар multipart/form-data қажет"
+  },
+  "gid должен быть десятичной строкой int64": {
+    "en": "gid must be a decimal int64 string",
+    "kk": "gid ондық int64 жолы болуы тиіс"
+  },
+  "Проверьте analysis_id, question и context_gids": {
+    "en": "Check analysis_id, question and context_gids",
+    "kk": "analysis_id, question және context_gids мәндерін тексеріңіз"
+  }
+}

@@ -48,7 +48,7 @@ func AIFromEnvironment() AI {
 func LoadEnv(path string) error {
 	f, err := os.Open(path)
 	if err != nil {
-		return fmt.Errorf("файл окружения недоступен")
+		return fmt.Errorf("environment file is unavailable")
 	}
 	defer f.Close()
 	scanner := bufio.NewScanner(f)
@@ -71,11 +71,11 @@ func LoadEnv(path string) error {
 			}
 		}
 		if !ok || !valid {
-			return fmt.Errorf("файл окружения: неверный формат строки %d", line)
+			return fmt.Errorf("environment file: invalid format on line %d", line)
 		}
 		if strings.HasPrefix(value, "\"") || strings.HasPrefix(value, "'") {
 			if len(value) < 2 || value[len(value)-1] != value[0] {
-				return fmt.Errorf("файл окружения: неверные кавычки в строке %d", line)
+				return fmt.Errorf("environment file: invalid quotes on line %d", line)
 			}
 			value = value[1 : len(value)-1]
 		} else {
@@ -86,12 +86,12 @@ func LoadEnv(path string) error {
 		pending[key] = value
 	}
 	if err := scanner.Err(); err != nil {
-		return fmt.Errorf("не удалось прочитать файл окружения")
+		return fmt.Errorf("could not read the environment file")
 	}
 	for key, value := range pending {
 		if _, exists := os.LookupEnv(key); !exists {
 			if err := os.Setenv(key, value); err != nil {
-				return fmt.Errorf("не удалось задать переменную окружения")
+				return fmt.Errorf("could not set the environment variable")
 			}
 		}
 	}

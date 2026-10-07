@@ -6,6 +6,7 @@ import (
 	"errors"
 	"finance.local/amlens/internal/application"
 	"finance.local/amlens/internal/config"
+	"finance.local/amlens/internal/i18n"
 	"io"
 	"net/http"
 	"strings"
@@ -83,5 +84,23 @@ func TestProviderFailuresAreBoundedAndSanitized(t *testing.T) {
 	_, err := client.Answer(context.Background(), "q", application.QuestionContext{})
 	if err == nil || strings.Contains(err.Error(), settings().Key) {
 		t.Fatal("transport leaked key")
+	}
+}
+
+func TestResponseLanguageUsesRequestContext(t *testing.T) {
+	for locale, language := range map[string]string{"en": "English", "ru": "Russian", "kk": "Kazakh"} {
+		client := New(settings(), transport(func(r *http.Request) (*http.Response, error) {
+			var payload map[string]any
+			if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+				t.Fatal(err)
+			}
+			if !strings.Contains(payload["instructions"].(string), "Respond in "+language+".") {
+				t.Fatal(payload["instructions"])
+			}
+			return response(200, envelope("{\"answer\":\"Facts\",\"referenced_gids\":[\"1\"]}")), nil
+		}))
+		if _, err := client.Answer(i18n.WithLocale(context.Background(), locale), "Question", application.QuestionContext{}); err != nil {
+			t.Fatal(err)
+		}
 	}
 }

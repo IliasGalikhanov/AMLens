@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"finance.local/amlens/internal/application"
+	"finance.local/amlens/internal/i18n"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -12,6 +13,11 @@ import (
 	"strings"
 	"unicode/utf8"
 )
+
+type localizedWriter struct {
+	http.ResponseWriter
+	locale string
+}
 
 type Handler struct {
 	service  *application.Service
@@ -42,6 +48,11 @@ func New(service *application.Service, origins []string, demo ...bool) http.Hand
 	return h
 }
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	locale := i18n.Parse(r.Header.Get("Accept-Language"))
+	w = localizedWriter{w, locale}
+	r = r.WithContext(i18n.WithLocale(r.Context(), locale))
+	w.Header().Set("Content-Language", locale)
+	w.Header().Add("Vary", "Accept-Language")
 	w.Header().Set("Cache-Control", "no-store")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.Header().Add("Vary", "Origin")
@@ -68,6 +79,11 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 func writeJSON(w http.ResponseWriter, status int, value any) {
 	data, err := json.Marshal(value)
+	if err == nil {
+		if writer, ok := w.(localizedWriter); ok {
+			data, err = i18n.JSON(data, writer.locale)
+		}
+	}
 	if err != nil {
 		writeError(w, 500, "INTERNAL_ERROR", "Не удалось подготовить ответ")
 		return
@@ -191,6 +207,11 @@ func (h *Handler) export(w http.ResponseWriter, r *http.Request) {
 	data, id, err := h.service.Export(name)
 	if err != nil {
 		respondError(w, err)
+		return
+	}
+	data, err = i18n.CSV(data, i18n.Locale(r.Context()))
+	if err != nil {
+		writeError(w, 500, "INTERNAL_ERROR", "Не удалось подготовить ответ")
 		return
 	}
 	w.Header().Set("Content-Type", "text/csv; charset=utf-8")

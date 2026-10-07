@@ -26,12 +26,12 @@ import (
 func main() { os.Exit(run(os.Args[1:])) }
 func run(args []string) int {
 	if len(args) == 0 {
-		fmt.Fprintln(os.Stderr, "Использование: amlens serve|validate|analyze|template|demo [параметры]")
+		fmt.Fprintln(os.Stderr, "Usage: amlens serve|validate|analyze|template|demo [options]")
 		return 2
 	}
 	command := args[0]
 	if command != "serve" && command != "validate" && command != "analyze" && command != "template" && command != "demo" {
-		fmt.Fprintln(os.Stderr, "Неизвестная команда")
+		fmt.Fprintln(os.Stderr, "Unknown command")
 		return 2
 	}
 	flags := flag.NewFlagSet(command, flag.ContinueOnError)
@@ -39,16 +39,16 @@ func run(args []string) int {
 	var demo bool
 	switch command {
 	case "serve":
-		flags.StringVar(&envFile, "env-file", "", "Явный путь к локальному .env")
-		flags.StringVar(&address, "addr", "127.0.0.1:8000", "Адрес HTTP")
-		flags.BoolVar(&demo, "demo", false, "Синтетические данные, только чтение, без ИИ")
+		flags.StringVar(&envFile, "env-file", "", "Explicit path to a local .env file")
+		flags.StringVar(&address, "addr", "127.0.0.1:8000", "HTTP address")
+		flags.BoolVar(&demo, "demo", false, "Read-only synthetic data, with AI disabled")
 	case "validate", "analyze":
-		flags.StringVar(&dataDir, "data-dir", "data", "Каталог трёх Parquet-файлов")
+		flags.StringVar(&dataDir, "data-dir", "data", "Directory containing three Parquet files")
 		if command == "analyze" {
-			flags.StringVar(&outputDir, "output-dir", "out", "Новый каталог CSV")
+			flags.StringVar(&outputDir, "output-dir", "out", "New CSV output directory")
 		}
 	case "template", "demo":
-		flags.StringVar(&outputDir, "output-dir", "data", "Каталог пустых Parquet-шаблонов")
+		flags.StringVar(&outputDir, "output-dir", "data", "Directory for empty Parquet templates")
 	}
 	if err := flags.Parse(args[1:]); err != nil {
 		if errors.Is(err, flag.ErrHelp) {
@@ -57,7 +57,7 @@ func run(args []string) int {
 		return 2
 	}
 	if flags.NArg() != 0 {
-		fmt.Fprintln(os.Stderr, "Лишние аргументы")
+		fmt.Fprintln(os.Stderr, "Unexpected arguments")
 		return 2
 	}
 	if envFile != "" {
@@ -75,7 +75,7 @@ func run(args []string) int {
 			fmt.Fprintln(os.Stderr, err)
 			return 1
 		}
-		fmt.Println("Созданы три Parquet-файла ("+command+"):", outputDir)
+		fmt.Println("Created three Parquet files ("+command+"):", outputDir)
 		return 0
 	}
 	root := os.Getenv("ANALYSIS_STORAGE_DIR")
@@ -102,7 +102,7 @@ func run(args []string) int {
 				seeds++
 			}
 		}
-		fmt.Printf("Статус: OK\nУзлов: %d\nРёбер: %d\nТранзакций: %d\nSeed: %d\n", len(d.Nodes), len(d.Edges), len(d.Transactions), seeds)
+		fmt.Printf("Status: OK\nNodes: %d\nEdges: %d\nTransactions: %d\nSeeds: %d\n", len(d.Nodes), len(d.Edges), len(d.Transactions), seeds)
 		return 0
 	}
 	if command == "analyze" {
@@ -117,7 +117,7 @@ func run(args []string) int {
 			return 1
 		}
 		s := snap.Analysis.Summary
-		fmt.Printf("Статус: OK\nУзлов: %d\nРёбер: %d\nТранзакций: %d\nКластеров: %d\nCSV: %s\nВремя: %s\n", s.Nodes, s.Edges, s.Transactions, s.Clusters, outputDir, time.Since(started).Round(time.Millisecond))
+		fmt.Printf("Status: OK\nNodes: %d\nEdges: %d\nTransactions: %d\nClusters: %d\nCSV: %s\nTime: %s\n", s.Nodes, s.Edges, s.Transactions, s.Clusters, outputDir, time.Since(started).Round(time.Millisecond))
 		return 0
 	}
 	database := os.Getenv("ANALYSIS_DATABASE")
@@ -129,12 +129,12 @@ func run(args []string) int {
 	}
 	store, err := history.Open(ctx, database, demo)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "Не удалось открыть хранилище:", err)
+		fmt.Fprintln(os.Stderr, "Could not open storage:", err)
 		return 1
 	}
 	defer store.Close()
 	if err = service.AttachStore(ctx, store); err != nil {
-		fmt.Fprintln(os.Stderr, "Не удалось восстановить анализ:", err)
+		fmt.Fprintln(os.Stderr, "Could not restore analysis:", err)
 		return 1
 	}
 	if demo {
@@ -162,12 +162,12 @@ func run(args []string) int {
 		defer cancel()
 		_ = server.Shutdown(shutdown)
 	}()
-	fmt.Printf("AMLens API: http://%s\nAI настроен: %t\n", address, service.AIConfigured())
+	fmt.Printf("AMLens API: http://%s\nAI configured: %t\n", address, service.AIConfigured())
 	err = server.ListenAndServe()
 	stop()
 	<-done
 	if err != nil && !errors.Is(err, http.ErrServerClosed) {
-		fmt.Fprintln(os.Stderr, "Не удалось запустить HTTP-сервер:", err)
+		fmt.Fprintln(os.Stderr, "Could not start HTTP server:", err)
 		return 1
 	}
 	return 0
